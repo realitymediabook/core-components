@@ -15,11 +15,13 @@ app.use(express.static(root))
 app.use('/', serveIndex(root))
 
 app.listen(port, () => {
-  ngrok.connect({ addr: port }).then((url) => {
+  // if you have a paid ngrok account, put the subdomain you reserved below.  If you don't,
+  // remove the subdomain parameter and ngrok will print the URL to the terminal
+  ngrok.connect({ addr: port, subdomain: 'profblair' }).then((url) => {
     console.clear()
     console.log('Custom room scripts served at:\n')
-    console.log(`> Local URL:\thttp://localhost:${port}/rooms`)
-    console.log(`> Public URL:\t${url}/rooms`)
+    console.log(`> Local URL:\thttps://localhost:${port}/`)
+    console.log(`> Public URL:\t${url}/`)
     console.log('\nNavigate to a room script and paste its public URL in your Hubs room settings')
   })
 })

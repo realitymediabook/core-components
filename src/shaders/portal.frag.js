@@ -21,8 +21,8 @@ void main() {
   float dist = length(coord);
   dist += noise * 0.2;
 
-  float maskOuter = smoothstep(radius, radius - RING_HARD_OUTER, dist);
-  float maskInner = smoothstep(radius - RING_WIDTH + RING_HARD_INNER, radius - RING_WIDTH, dist);
+  float maskOuter = 1.0 - smoothstep(radius - RING_HARD_OUTER, radius, dist);
+  float maskInner = 1.0 - smoothstep(radius - RING_WIDTH, radius - RING_WIDTH + RING_HARD_INNER, dist);
   float distortion = smoothstep(radius - 0.2, radius + 0.2, dist);
   vec3 normal = normalize(vNormal);
   float directView = smoothstep(0., 0.8, dot(normal, forward));
