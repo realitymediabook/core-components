@@ -7,7 +7,7 @@ const express = require('express')
 const serveIndex = require('serve-index')
 const cors = require('cors')
 const app = express()
-const root = 'src'
+const root = '.'
 const port = 1234
 
 app.use(cors())

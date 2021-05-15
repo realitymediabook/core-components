@@ -40,7 +40,8 @@ AFRAME.registerSystem('portal', {
     }
   },
   fetchRoomData: async function () {
-    var params = {token: window.APP.store.state.credentials.token}
+    var params = {token: window.APP.store.state.credentials.token,
+                  room_id: window.APP.hubChannel.hubId}
 
     const options = {};
     options.headers = new Headers();
@@ -207,8 +208,10 @@ AFRAME.registerComponent('portal', {
   parseNodeName: function () {
     const nodeName = this.el.parentEl.parentEl.className
 
-    // nodes should be named anything at the beginning with either "roomN.color" or "portalN.color" 
-    // at the very end
+    // nodes should be named anything at the beginning with either 
+    // - "room_name_color"
+    // - "portal_N_color" 
+    // at the very end. Numbered portals should come in pairs.
     const params = nodeName.match(/([A-Za-z]*)_([A-Za-z0-9]*)_([A-Za-z0-9]*)$/)
     
     // if pattern matches, we will have length of 4, first match is the portal type,
