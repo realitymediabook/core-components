@@ -15,6 +15,8 @@
 
 // const errorHTML = '<div id="hello" xr-width="2" style="width: 200px; height: 30px; background: rgba(1, 0, 0, 0.6); position:absolute">No Text Provided</div>'
 
+//import * as htmlComponents from "https://resources.realitymedia.digital/test-vue-app/dist/hubs.js";
+import * as htmlComponents from "https://blairhome.ngrok.io/test-vue-app/dist/hubs.js";
 AFRAME.registerComponent('html-script', {
   init: function () {
 
@@ -31,7 +33,7 @@ AFRAME.registerComponent('html-script', {
             var bbox = new THREE.Box3().setFromObject(this.scriptData.webLayer3D);
             var wsize = bbox.max.x - bbox.min.x
             var hsize = bbox.max.y - bbox.min.y
-            var scale = Math.max(width / wsize, height / hsize)
+            var scale = Math.min(width / wsize, height / hsize)
             this.simpleContainer.scale.set(scale,scale,scale)
         }
         this.el.object3D.add(this.simpleContainer)
@@ -41,6 +43,14 @@ AFRAME.registerComponent('html-script', {
     })
   },
 
+  // INTERACTION
+  // [1:05 PM] Speiginer, Gheric
+    // layer.interactionRays = [ray, orObject3D, etc.]
+    //     If you pass an object, it assumes +Z in object-space is the ray
+    //     Or might be -Z… whatever the WebXR controllers do
+    //     To create a ray from a intersection point, you can covert the point to object space, 
+    //     set the direction vector to -z (0,0,-1), then convert back into world space
+    
 parseNodeName: async function () {
     const nodeName = this.el.parentEl.parentEl.className
 
@@ -56,26 +66,40 @@ parseNodeName: async function () {
         console.warn("html-script dirname_filename not formatted correctly: ", nodeName)
         this.dirname = null
         this.filename = null
-        this.htmlText = null // default so the portal has a color to use
         this.scriptData = null
     } else {
         this.dirname = params[1]
         this.filename = params[2]
-        try {
-            const scriptURL = "https://resources.realitymedia.digital/test-vue-app/" + this.filename + ".js"
-            var scriptPromise = import(scriptURL);
-            try {
-                const {d} = await scriptPromise;
-                this.scriptData = d
-                this.div = this.scriptData.div
-                this.scriptData.webLayer3D.update()
-            } catch (err) {
-                this.scriptData = null;
-                console.error(`Custom script for html-script componentg ${nodeName} failed to load. Reason: ${err}`);
-            }
-        } catch (e) {
-            console.warn("Couldn't fetch script for " + nodeName);
-        }  
+
+        var initScript = htmlComponents[this.filename]
+        if (!initScript) {
+            console.warn("'html-script' component doesn't have script for " + nodeName);
+            this.scriptData = null
+            return;
+        }
+
+        this.scriptData = initScript(htmlComponents.styles)
+        if (this.scriptData){
+            //this.scriptData.webLayer3D.refresh()
+            this.scriptData.webLayer3D.update()
+        } else {
+            console.warn("'html-script' component failed to initialize script for " + nodeName);
+        }
+        // try {
+        //     const scriptURL = "https://resources.realitymedia.digital/test-vue-app/" + this.filename + ".js"
+        //     var scriptPromise = import(scriptURL);
+        //     try {
+        //         const {d} = await scriptPromise;
+        //         this.scriptData = d
+        //         this.div = this.scriptData.div
+        //         this.scriptData.webLayer3D.update()
+        //     } catch (err) {
+        //         this.scriptData = null;
+        //         console.error(`Custom script for html-script componentg ${nodeName} failed to load. Reason: ${err}`);
+        //     }
+        // } catch (e) {
+        //     console.warn("Couldn't fetch script for " + nodeName);
+        // }  
     }
   },
 
