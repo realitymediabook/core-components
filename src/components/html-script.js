@@ -15,6 +15,8 @@
 
 // const errorHTML = '<div id="hello" xr-width="2" style="width: 200px; height: 30px; background: rgba(1, 0, 0, 0.6); position:absolute">No Text Provided</div>'
 
+import * as htmlComponents from "https://blairhome.ngrok.io/test-vue-app/dist/hubs.js";
+
 AFRAME.registerComponent('html-script', {
   init: function () {
 
@@ -34,8 +36,16 @@ AFRAME.registerComponent('html-script', {
             var scale = Math.max(width / wsize, height / hsize)
             this.simpleContainer.scale.set(scale,scale,scale)
         }
+
+        this.scriptData.webLayer3D.refresh()
+        // this.scriptData.webLayer3D.children[0].material.map.encoding = THREE.sRGBEncoding
+        // this.scriptData.webLayer3D.children[0].material.needsUpdate = true
         this.el.object3D.add(this.simpleContainer)
         setInterval(() => {
+            if (this.scriptData.webLayer3D.children[0].material.map) {
+                this.scriptData.webLayer3D.children[0].material.map.encoding = THREE.sRGBEncoding
+                this.scriptData.webLayer3D.children[0].material.needsUpdate = true
+            }
             this.scriptData.webLayer3D.update()
         }, 50)
     })
@@ -56,26 +66,36 @@ parseNodeName: async function () {
         console.warn("html-script dirname_filename not formatted correctly: ", nodeName)
         this.dirname = null
         this.filename = null
-        this.htmlText = null // default so the portal has a color to use
         this.scriptData = null
     } else {
         this.dirname = params[1]
         this.filename = params[2]
-        try {
-            const scriptURL = "https://resources.realitymedia.digital/test-vue-app/" + this.filename + ".js"
-            var scriptPromise = import(scriptURL);
-            try {
-                const {d} = await scriptPromise;
-                this.scriptData = d
-                this.div = this.scriptData.div
-                this.scriptData.webLayer3D.update()
-            } catch (err) {
-                this.scriptData = null;
-                console.error(`Custom script for html-script componentg ${nodeName} failed to load. Reason: ${err}`);
-            }
-        } catch (e) {
-            console.warn("Couldn't fetch script for " + nodeName);
-        }  
+
+        var scriptData = htmlComponents[this.filename]
+        if (!scriptData) {
+            console.warn("'html-script' component doesn't have script for " + nodeName);
+            this.scriptData = null
+            return;
+        }
+        this.scriptData = scriptData
+        this.scriptData.webLayer3D.update()
+
+        // try {
+        //     const scriptURL = "https://blairhome.ngrok.io/test-vue-app/" + this.filename + ".js"
+        //     //const scriptURL = "https://resources.realitymedia.digital/test-vue-app/" + this.filename + ".js"
+        //     var scriptPromise = import(scriptURL);
+        //     try {
+        //         const {d} = await scriptPromise;
+        //         this.scriptData = d
+        //         this.div = this.scriptData.div
+        //         this.scriptData.webLayer3D.update()
+        //     } catch (err) {
+        //         this.scriptData = null;
+        //         console.error(`Custom script for html-script componentg ${nodeName} failed to load. Reason: ${err}`);
+        //     }
+        // } catch (e) {
+        //     console.warn("Couldn't fetch script for " + nodeName);
+        // }  
     }
   },
 
