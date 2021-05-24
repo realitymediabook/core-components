@@ -2,7 +2,7 @@
   "name": "hubs-scripting-guide",
   "license": "MIT",
   "scripts": {
-    "start": "rollup -c --environment BUILD:dev && node start.js",
+    "start": "npm run buildDev && node start.js",
     "prepare": "husky install",
     "buildDev": "rollup -c --environment BUILD:dev",
     "build": "rollup -c --environment BUILD:production"
