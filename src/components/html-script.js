@@ -15,7 +15,8 @@
 
 // const errorHTML = '<div id="hello" xr-width="2" style="width: 200px; height: 30px; background: rgba(1, 0, 0, 0.6); position:absolute">No Text Provided</div>'
 
-import * as htmlComponents from "https://blairhome.ngrok.io/test-vue-app/dist/hubs.js";
+//import * as htmlComponents from "https://blairhome.ngrok.io/test-vue-app/dist/hubs.js";
+import * as htmlComponents from "https://resources.realitymedia.digital/test-vue-app/dist/hubs.js";
 
 AFRAME.registerComponent('html-script', {
     init: function () {
@@ -44,9 +45,9 @@ AFRAME.registerComponent('html-script', {
             // 2: sprites
             // so, if we start at 0 and increment by 1, we start being interspersed with
             // cursor and icons
-            this.scriptData.webLayer3D.traverseLayersPreOrder((layer) => {
-                layer.renderOrder = -1000 + layer.renderOrder
-            })
+            // this.scriptData.webLayer3D.traverseLayersPreOrder((layer) => {
+            //     layer.renderOrder = -1000 + layer.renderOrder
+            // })
 
             //this.scriptData.webLayer3D.children[0].material.map.encoding = THREE.sRGBEncoding
             // this.scriptData.webLayer3D.children[0].material.needsUpdate = true
@@ -54,14 +55,14 @@ AFRAME.registerComponent('html-script', {
             setInterval(() => {
                 this.scriptData.webLayer3D.refresh(true)
                 this.scriptData.webLayer3D.update(true)
-                this.scriptData.webLayer3D.traverseLayersPreOrder((layer) => {
-                    layer.renderOrder = -1000 + layer.renderOrder
-                    if (layer.children[0].material.map) {
-                        layer.children[0].material.map.encoding = THREE.sRGBEncoding
-                        layer.children[0].material.needsUpdate = true
-                    }
+                // this.scriptData.webLayer3D.traverseLayersPreOrder((layer) => {
+                //     layer.renderOrder = -1000 + layer.renderOrder
+                //     if (layer.children[0].material.map) {
+                //         layer.children[0].material.map.encoding = THREE.sRGBEncoding
+                //         layer.children[0].material.needsUpdate = true
+                //     }
     
-                })
+                // })
     
                 // this.scriptData.webLayer3D.traverseLayersPreOrder((layer) => {layer.refresh(); layer.update()})
             }, 50)
