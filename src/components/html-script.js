@@ -15,7 +15,7 @@
 
 // const errorHTML = '<div id="hello" xr-width="2" style="width: 200px; height: 30px; background: rgba(1, 0, 0, 0.6); position:absolute">No Text Provided</div>'
 
-import * as htmlComponents from ___componentPath
+import * as htmlComponents from "https://resources.realitymedia.digital/test-vue-app/dist/hubs.js";
 
 AFRAME.registerComponent('html-script', {
     init: function () {
