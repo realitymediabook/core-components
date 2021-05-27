@@ -24,7 +24,7 @@
     {
       "extensions": {
         "MOZ_hubs_components": {
-          "html-script": null
+          "html-script": { }
         }
       },
       "name": "Entity"

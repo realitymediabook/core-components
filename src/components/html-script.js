@@ -15,193 +15,589 @@
 
 // const errorHTML = '<div id="hello" xr-width="2" style="width: 200px; height: 30px; background: rgba(1, 0, 0, 0.6); position:absolute">No Text Provided</div>'
 
-import * as htmlComponents from "https://resources.realitymedia.digital/test-vue-app/dist/hubs.js";
+import * as htmlComponents from "https://resources.realitymedia.digital/test-vue-app/dist/hubs.min.js";
 
 AFRAME.registerComponent('html-script', {
+    schema: {
+        // name must follow the pattern "*_componentName"
+        name: { type: "string", default: ""}
+    },
     init: function () {
+        this.script = null;
+        this.fullName = this.data.name;
+        this.parseNodeName();
+        this.createScript();
+    },
 
-        this.parseNodeName().then( () => {
-            if (!this.scriptData) return
+    update: function () {
+        if (this.data.name === "" || this.data.name === this.fullName) return
 
+        this.fullName = this.data.name;
+        this.parseNodeName();
+
+        if (this.script) {
+            this.destroyScript()
+        }
+        this.createScript();
+    },
+
+    createScript: function () {
+        // each time we load a script component we will possibly create
+        // a new networked component.  This is fine, since the networked Id 
+        // is based on the full name passed as a parameter, or assigned to the
+        // component in Spoke.  It does mean that if we have
+        // multiple objects in the scene which have the same name, they will
+        // be in sync.  It also means that if you want to drop a component on
+        // the scene via a .glb, it must have a valid name parameter inside it.
+        // A .glb in spoke will fall back to the spoke name if you use one without
+        // a name inside it.
+        this.loadScript().then( () => {
+            if (!this.script) return
+
+            if (this.script.isNetworked) {
+                // get the parent networked entity, when it's finished initializing.  
+                // When creating this as part of a GLTF load, the 
+                // parent a few steps up will be networked.  We'll only do this
+                // if the HTML script wants to be networked
+                this.netEntity = null
+
+                // bind callbacks
+                this.takeOwnership = this.takeOwnership.bind(this);
+                this.setSharedData = this.setSharedData.bind(this)
+
+                this.script.setNetworkMethods(this.takeOwnership, this.setSharedData)
+            }
+
+            // set up the local content and hook it to the threejs scene
             this.simpleContainer = new THREE.Object3D()
             this.simpleContainer.matrixAutoUpdate = true
-            this.simpleContainer.add(this.scriptData.webLayer3D)
-            this.scriptData.webLayer3D._webLayer._hashingCanvas.width = 20
-            this.scriptData.webLayer3D._webLayer._hashingCanvas.height = 20
+            this.simpleContainer.add(this.script.webLayer3D)
+            // this.script.webLayer3D._webLayer._hashingCanvas.width = 20
+            // this.script.webLayer3D._webLayer._hashingCanvas.height = 20
 
-            const width = this.scriptData.width
-            const height = this.scriptData.height
+            const width = this.script.width
+            const height = this.script.height
             if (width && width > 0 && height && height > 0) {
-                var bbox = new THREE.Box3().setFromObject(this.scriptData.webLayer3D);
+                var bbox = new THREE.Box3().setFromObject(this.script.webLayer3D);
                 var wsize = bbox.max.x - bbox.min.x
                 var hsize = bbox.max.y - bbox.min.y
                 var scale = Math.max(width / wsize, height / hsize)
                 this.simpleContainer.scale.set(scale,scale,scale)
             }
-            // move the layers back.  Hubs uses render order
-            // 0: background
-            // 1: cursor
-            // 2: sprites
-            // so, if we start at 0 and increment by 1, we start being interspersed with
-            // cursor and icons
-            // this.scriptData.webLayer3D.traverseLayersPreOrder((layer) => {
-            //     layer.renderOrder = -1000 + layer.renderOrder
-            // })
 
-            //this.scriptData.webLayer3D.children[0].material.map.encoding = THREE.sRGBEncoding
-            // this.scriptData.webLayer3D.children[0].material.needsUpdate = true
             this.el.object3D.add(this.simpleContainer)
             setInterval(() => {
-                this.scriptData.webLayer3D.refresh(true)
-                this.scriptData.webLayer3D.update(true)
-                // this.scriptData.webLayer3D.traverseLayersPreOrder((layer) => {
-                //     layer.renderOrder = -1000 + layer.renderOrder
-                //     if (layer.children[0].material.map) {
-                //         layer.children[0].material.map.encoding = THREE.sRGBEncoding
-                //         layer.children[0].material.needsUpdate = true
-                //     }
-    
-                // })
-    
-                // this.scriptData.webLayer3D.traverseLayersPreOrder((layer) => {layer.refresh(); layer.update()})
+                // update on a regular basis
+                this.script.webLayer3D.refresh(true)
+                this.script.webLayer3D.update(true)
             }, 50)
 
-            // going to want to try and make the html object clickable
-            this.el.setAttribute('is-remote-hover-target','')
-            this.el.setAttribute('tags', {singleActionButton: true})
-            this.el.setAttribute('class', "interactable")
-            // forward the 'interact' events to our object 
-            this.clicked = this.clicked.bind(this)
-            this.el.object3D.addEventListener('interact', this.clicked)
+            if (this.script.isInteractive) {
+                // make the html object clickable
+                this.el.setAttribute('is-remote-hover-target','')
+                this.el.setAttribute('tags', {singleActionButton: true})
+                this.el.classList.add("interactable")
+                
+                // forward the 'interact' events to our object 
+                this.clicked = this.clicked.bind(this)
+                this.el.object3D.addEventListener('interact', this.clicked)
 
-            this.raycaster = new THREE.Raycaster()
-            this.hoverRayL = new THREE.Ray()
-            this.hoverRayR = new THREE.Ray()
+                this.raycaster = new THREE.Raycaster()
+                this.hoverRayL = new THREE.Ray()
+                this.hoverRayR = new THREE.Ray()
+            }
+            if (this.script.isNetworked) {
+                // This function finds an existing copy of the Networked Entity (if we are not the
+                // first client in the room it will exist in other clients and be created by NAF)
+                // or create an entity if we are first.
+                this.setupNetworkedEntity = function (networkedEl) {
+                    var persistent = true;
+                    var netId;
+                    if (networkedEl) {
+                        // We will be part of a Networked GLTF if the GLTF was dropped on the scene
+                        // or pinned and loaded when we enter the room.  Use the networked parents
+                        // networkId plus a disambiguating bit of text to create a unique Id.
+                        netId = NAF.utils.getNetworkId(networkedEl) + "-html-script";
+
+                        // if we need to create an entity, use the same persistence as our
+                        // network entity (true if pinned, false if not)
+                        persistent = entity.components.networked.data.persistent;
+                    } else {
+                        // this only happens if this component is on a scene file, since the
+                        // elements on the scene aren't networked.  So let's assume each entity in the
+                        // scene will have a unique name.  Adding a bit of text so we can find it
+                        // in the DOM when debugging.
+                        netId = this.fullName.replaceAll("_","-") + "-html-script"
+                    }
+
+                    // check if the networked entity we create for this component already exists. 
+                    // otherwise, create it
+                    // - NOTE: it is created on the scene, not as a child of this entity, because
+                    //   NAF creates remote entities in the scene.
+                    var entity;
+                    if (NAF.entities.hasEntity(netId)) {
+                        entity = NAF.entities.getEntity(netId);
+                    } else {
+                        entity = document.createElement('a-entity')
+
+                        // the "networked" component should have persistent=true, the template and 
+                        // networkId set, owner set to "scene" (so that it doesn't update the rest of
+                        // the world with it's initial data, and should NOT set creator (the system will do that)
+                        entity.setAttribute('networked', {
+                            template: "#hover-shape-media",
+                            persistent: persistent,
+                            owner: "scene",  // so that our initial value doesn't overwrite others
+                            networkId: netId
+                        });
+                        this.el.sceneEl.appendChild(entity);
+                    }
+
+                    // save a pointer to the networked entity and then wait for it to be fully
+                    // initialized before getting a pointer to the actual networked component in it
+                    this.netEntity = entity;
+                    NAF.utils.getNetworkedEntity(this.netEntity).then(networkedEl => {
+                        this.stateSync = networkedEl.components["hover-counter"]
+
+                        // if this is the first networked entity, it's sharedData will default to the empty 
+                        // string, and we should initialize it with the initial data from the script
+                        if (this.stateSync.sharedData === 0) {
+                            let networked = networkedEl.components["networked"]
+                            if (networked.data.creator == NAF.clientId) {
+                                this.stateSync.initSharedData(this.script.getSharedData())
+                            }
+                        }
+                    })
+                }
+                this.setupNetworkedEntity = this.setupNetworkedEntity.bind(this)
+
+                this.setupNetworked = function () {
+                    NAF.utils.getNetworkedEntity(this.el).then(networkedEl => {
+                        this.setupNetworkedEntity(networkedEl)
+                    }).catch(() => {
+                        this.setupNetworkedEntity()
+                    })
+                }
+                this.setupNetworked = this.setupNetworked.bind(this)
+
+                // This method handles the different startup cases:
+                // - if the GLTF was dropped on the scene, NAF will be connected and we can 
+                //   immediately initialize
+                // - if the GLTF is in the room scene or pinned, it will likely be created
+                //   before NAF is started and connected, so we wait for an event that is
+                //   fired when Hubs has started NAF
+                if (NAF.connection && NAF.connection.isConnected()) {
+                    this.setupNetworked();
+                } else {
+                    this.el.sceneEl.addEventListener('didConnectToNetworkedScene', this.setupNetworked)
+                }
+            }
         })
     },
 
+    play: function () {
+        if (this.script) {
+            this.script.play()
+        }
+    },
+
+    pause: function () {
+        if (this.script) {
+            this.script.pause()
+        }
+    },
+
+    // handle "interact" events for clickable entities
     clicked: function(evt) {
         const obj = evt.object3D
-        this.raycaster.ray.set(obj.position, this.scriptData.webLayer3D.getWorldDirection(new THREE.Vector3()).negate())
-        const hit = this.scriptData.webLayer3D.hitTest(this.raycaster.ray)
+        this.raycaster.ray.set(obj.position, this.script.webLayer3D.getWorldDirection(new THREE.Vector3()).negate())
+        const hit = this.script.webLayer3D.hitTest(this.raycaster.ray)
         if (hit) {
           hit.target.click()
           hit.target.focus()
           console.log('hit', hit.target, hit.layer)
         }   
     },
-    // function onSelect(evt: THREE.Event) {
-    //     const controller = evt.target as THREE.Object3D
-    //     raycaster.ray.set(controller.position, controller.getWorldDirection(new THREE.Vector3()).negate())
-    //     const hit = todoLayer.hitTest(raycaster.ray)
-    //     if (hit) {
-    //       hit.target.click()
-    //       hit.target.focus()
-    //       console.log('hit', hit.target, hit.layer)
-    //     }
-    //   }
-
   
+    // methods that will be passed to the html object so they can update networked data
+    takeOwnership: function() {
+        if (this.stateSync) {
+            return this.stateSync.takeOwnership()
+        } else {
+            return true;  // sure, go ahead and change it for now
+        }
+    },
+    
+    setSharedData: function(dataObject) {
+        if (this.stateSync) {
+            return this.stateSync.setSharedData(dataObject)
+        }
+        return true
+    },
+
+    // per frame stuff
     tick: function (time) {
-        // more or less copied from "hoverable-visuals.js" in hubs
-        const toggling = this.el.sceneEl.systems["hubs-systems"].cursorTogglingSystem;
-        var passthruInteractor = []
+        if (!this.script) return
 
-        let interactorOne, interactorTwo;
-        const interaction = this.el.sceneEl.systems.interaction;
-        if (!interaction.ready) return; //DOMContentReady workaround
-        
-        if (interaction.state.leftHand.hovered === this.el && !interaction.state.leftHand.held) {
-          interactorOne = interaction.options.leftHand.entity.object3D;
-        }
-        if (
-          interaction.state.leftRemote.hovered === this.el &&
-          !interaction.state.leftRemote.held &&
-          !toggling.leftToggledOff
-        ) {
-          interactorOne = interaction.options.leftRemote.entity.object3D;
-        }
-        if (interactorOne) {
-            let pos = interactorOne.position
-            let dir = this.scriptData.webLayer3D.getWorldDirection(new THREE.Vector3()).negate()
-            pos.addScaledVector(dir, -0.1)
-            this.hoverRayL.set(pos, dir)
+        if (this.script.isInteractive) {
+            // more or less copied from "hoverable-visuals.js" in hubs
+            const toggling = this.el.sceneEl.systems["hubs-systems"].cursorTogglingSystem;
+            var passthruInteractor = []
 
-            passthruInteractor.push(this.hoverRayL)
-        }
-        if (
-          interaction.state.rightRemote.hovered === this.el &&
-          !interaction.state.rightRemote.held &&
-          !toggling.rightToggledOff
-        ) {
-          interactorTwo = interaction.options.rightRemote.entity.object3D;
-        }
-        if (interaction.state.rightHand.hovered === this.el && !interaction.state.rightHand.held) {
-            interactorTwo = interaction.options.rightHand.entity.object3D;
-        }
-        if (interactorTwo) {
-            let pos = interactorTwo.position
-            let dir = this.scriptData.webLayer3D.getWorldDirection(new THREE.Vector3()).negate()
-            pos.addScaledVector(dir, -0.1)
-            this.hoverRayR.set(pos, dir)
-            passthruInteractor.push(this.hoverRayR)
+            let interactorOne, interactorTwo;
+            const interaction = this.el.sceneEl.systems.interaction;
+            if (!interaction.ready) return; //DOMContentReady workaround
+            
+            if (interaction.state.leftHand.hovered === this.el && !interaction.state.leftHand.held) {
+              interactorOne = interaction.options.leftHand.entity.object3D;
+            }
+            if (
+              interaction.state.leftRemote.hovered === this.el &&
+              !interaction.state.leftRemote.held &&
+              !toggling.leftToggledOff
+            ) {
+              interactorOne = interaction.options.leftRemote.entity.object3D;
+            }
+            if (interactorOne) {
+                let pos = interactorOne.position
+                let dir = this.script.webLayer3D.getWorldDirection(new THREE.Vector3()).negate()
+                pos.addScaledVector(dir, -0.1)
+                this.hoverRayL.set(pos, dir)
+
+                passthruInteractor.push(this.hoverRayL)
+            }
+            if (
+              interaction.state.rightRemote.hovered === this.el &&
+              !interaction.state.rightRemote.held &&
+              !toggling.rightToggledOff
+            ) {
+              interactorTwo = interaction.options.rightRemote.entity.object3D;
+            }
+            if (interaction.state.rightHand.hovered === this.el && !interaction.state.rightHand.held) {
+                interactorTwo = interaction.options.rightHand.entity.object3D;
+            }
+            if (interactorTwo) {
+                let pos = interactorTwo.position
+                let dir = this.script.webLayer3D.getWorldDirection(new THREE.Vector3()).negate()
+                pos.addScaledVector(dir, -0.1)
+                this.hoverRayR.set(pos, dir)
+                passthruInteractor.push(this.hoverRayR)
+            }
+
+            this.script.webLayer3D.interactionRays = passthruInteractor
         }
 
-        this.scriptData.webLayer3D.interactionRays = passthruInteractor
+        if (this.script.isNetworked) {
+            // if we haven't finished setting up the networked entity don't do anything.
+            if (!this.netEntity || !this.stateSync) { return }
+
+            // if the state has changed in the networked data, update our html object
+            if (this.stateSync.changed) {
+                this.stateSync.changed = false
+                this.script.updateSharedData(this.stateSync.dataObject)
+            }
+        }
     },
   
-  parseNodeName: async function () {
-    const nodeName = this.el.parentEl.parentEl.className
+  parseNodeName: function () {
+        if (this.fullName === "") {
+            this.fullName = this.el.parentEl.parentEl.className
+        }
 
-    // nodes should be named anything at the beginning with 
-    //  "dirname_filename"
-    // at the very end.  This will fetch a file from the resources
-    // directory data/htmltext/dirname/filename
-    const params = nodeName.match(/([A-Za-z0-9]*)_([A-Za-z0-9]*)$/)
-    
-    // if pattern matches, we will have length of 3, first match is the dir,
-    // second is the filename name or number
-    if (!params || params.length < 3) {
-        console.warn("html-script dirname_filename not formatted correctly: ", nodeName)
-        this.dirname = null
-        this.filename = null
-        this.scriptData = null
-    } else {
-        this.dirname = params[1]
-        this.filename = params[2]
+        // nodes should be named anything at the beginning with 
+        //  "componentName"
+        // at the very end.  This will fetch the component from the resource
+        // componentName
+        const params = this.fullName.match(/_([A-Za-z0-9]*)$/)
 
-        var initScript = htmlComponents[this.filename]
+        // if pattern matches, we will have length of 3, first match is the dir,
+        // second is the componentName name or number
+        if (!params || params.length < 2) {
+            console.warn("html-script componentName not formatted correctly: ", this.fullName)
+            this.componentName = null
+        } else {
+            this.componentName = params[1]
+        }
+  },
+
+  loadScript: async function () {
+        var initScript = htmlComponents[this.componentName]
         if (!initScript) {
-            console.warn("'html-script' component doesn't have script for " + nodeName);
-            this.scriptData = null
+            console.warn("'html-script' component doesn't have script for " + this.componentName);
+            this.script = null
             return;
         }
-        this.scriptData = initScript()
-        if (this.scriptData){
-            this.scriptData.webLayer3D._webLayer._hashingCanvas.width = 200; 
-            this.scriptData.webLayer3D._webLayer._hashingCanvas.height = 200
-            this.scriptData.webLayer3D.refresh(true)
-            this.scriptData.webLayer3D.update(true)
+        this.script = initScript()
+        if (this.script){
+            this.script.webLayer3D.refresh(true)
+            this.script.webLayer3D.update(true)
         } else {
-            console.warn("'html-script' component failed to initialize script for " + nodeName);
+            console.warn("'html-script' component failed to initialize script for " + this.componentName);
         }
+    },
 
-        // try {
-        //     const scriptURL = "https://blairhome.ngrok.io/test-vue-app/" + this.filename + ".js"
-        //     //const scriptURL = "https://resources.realitymedia.digital/test-vue-app/" + this.filename + ".js"
-        //     var scriptPromise = import(scriptURL);
-        //     try {
-        //         const {d} = await scriptPromise;
-        //         this.scriptData = d
-        //         this.div = this.scriptData.div
-        //         this.scriptData.webLayer3D.update()
-        //     } catch (err) {
-        //         this.scriptData = null;
-        //         console.error(`Custom script for html-script componentg ${nodeName} failed to load. Reason: ${err}`);
-        //     }
-        // } catch (e) {
-        //     console.warn("Couldn't fetch script for " + nodeName);
-        // }  
+    destroyScript: function () {
+        if (this.script.isInteractive) {
+            // make the html object clickable
+            this.el.removeAttribute('is-remote-hover-target')
+            this.el.removeAttribute('tags')
+            this.el.classList.remove("interactable")
+            
+            this.el.object3D.removeEventListener('interact', this.clicked)
+        }
+        this.el.object3D.remove(this.simpleContainer)
+        this.simpleContainer = null
+
+        this.script.destroy()
+        this.script = null
     }
-  }
 })
+
+
+//
+// Component for our networked state.  This component does nothing except all us to 
+// change the state when appropriate. We could set this up to signal the component above when
+// something has changed, instead of having the component above poll each frame.
+//
+
+// AFRAME.registerComponent('script-sync', {
+//     schema: {
+//         scriptdata: {default: 0}
+//     },
+//     init: function () {
+//         this.takeOwnership = this.takeOwnership.bind(this);
+//         this.setSharedData = this.setSharedData.bind(this)
+
+//         this.sharedData = 0;
+//         this.dataObject = { count: 0};
+//         this.changed = false
+//     },
+
+//     update() {
+//         // until there is valid data, we aren't going to claim there is an update
+//         //if (this.sharedData === "") return
+        
+//         if (this.sharedData != this.data.scriptdata) { //this.sharedData.localeCompare(this.data.scriptdata) != 0) {
+//             try {
+//                 this.dataObject = {count: this.data.scriptdata}//JSON.parse(decodeURIComponent(this.sharedData))
+
+//                 // do these after the JSON parse to make sure it has succeeded
+//                 this.sharedData = this.data.scriptdata
+//                 this.changed = true  // will be reset by the client component above
+//             } catch(e) {
+//                 console.error("couldn't parse JSON received in script-sync: ", e)
+//                 this.sharedData = ""
+//                 this.dataObject = {}
+//             }
+//         }
+//     },
+
+//     // it is likely that applyPersistentSync only needs to be called for persistent
+//     // networked entities, so we _probably_ don't need to do this.  But if there is no
+//     // persistent data saved from the network for this entity, this command does nothing.
+//     play() {
+//         if (this.el.components.networked) {
+//             // not sure if this is really needed, but can't hurt
+//             if (APP.utils) { // temporary till we ship new client
+//                 APP.utils.applyPersistentSync(this.el.components.networked.data.networkId);
+//             }
+//         }
+//     },
+
+//     // The key part in these methods (which are called from the component above, which are
+//     // in turn called from the HTML script plugins), is to first check if we are allowed 
+//     // to change the networked object (with takeOwnership()) before updating the data.  
+//     // If we own it (isMine() is true) we can change it.  If we don't own in, we can try 
+//     // to become the owner with NAF.utils.takeOwnership(). If this succeeds, we can set the data.  
+//     takeOwnership() {
+//         if (!NAF.utils.isMine(this.el) && !NAF.utils.takeOwnership(this.el)) return false;
+
+//         return true;
+//     },
+
+//     initSharedData(dataObject) {
+//         this.sharedData = dataObject.count
+//         this.dataObject = dataObject
+//     },
+
+//     setSharedData(dataObject) {
+//         if (!NAF.utils.isMine(this.el) && !NAF.utils.takeOwnership(this.el)) return false;
+
+//         try {
+//             var htmlString = dataObject.count; //encodeURIComponent(JSON.stringify(dataObject))
+//             // this.sharedData = htmlString
+//             // this.dataObject = dataObject
+//             this.el.setAttribute("script-sync", "scriptdata", htmlString);
+//             return true
+//         } catch (e) {
+//             console.error("can't stringify the object passed to script-sync")
+//             return false
+//         }
+//     }
+// });
+// // Add our template for our networked object to the a-frame assets object,
+// // and a schema to the NAF.schemas.  Both must be there to have custom components work
+// const assets = document.querySelector("a-assets");
+// assets.insertAdjacentHTML(
+//     'beforeend',
+//     `
+//     <template id="vue-script-sync">
+//       <a-entity
+//         script-sync
+//       ></a-entity>
+//     </template>
+//   `
+//   )
+
+// NAF.schemas.add({
+//   	template: "#vue-script-sync",
+    
+//     components: [
+//     {
+//         component: "script-sync",
+//         property: "scriptdata"
+//     }],
+    
+//     // nonAuthorizedComponents: [
+//     // {
+//     //     component: "script-sync",
+//     //     property: "scriptdata"
+//     // }]
+    
+// });
+
+//
+// Component for our networked state.  This component does nothing except all us to 
+// change the state when appropriate. We could set this up to signal the component above when
+// something has changed, instead of having the component above poll each frame.
+//
+
+AFRAME.registerComponent('hover-counter', {
+    schema: {
+        index: {default: 0},
+        scale: {type: 'vec3', default: { x: 1, y: 1, z: 1}},
+        rotation: {type: 'vec3', default: { x: 0, y: 0, z: 0}}
+    },
+    init: function () {
+        this.setSharedData = this.setSharedData.bind(this);
+        // this.setRotation = this.setRotation.bind(this)
+        // this.setScale = this.setScale.bind(this)
+
+        this.index = -1;
+        this.changed = false;
+    },
+
+    update() {
+        this.changed = this.index != this.data.index;
+
+        this.index = this.data.index;
+
+        if (this.changed) { 
+            this.dataObject = {count: this.index}
+        }
+    },
+
+    // it is likely that applyPersistentSync only needs to be called for persistent
+    // networked entities, so we _probably_ don't need to do this.  But if there is no
+    // persistent data saved from the network for this entity, this command does nothing.
+    play() {
+        if (this.el.components.networked) {
+            // not sure if this is really needed, but can't hurt
+            if (APP.utils) { // temporary till we ship new client
+                APP.utils.applyPersistentSync(this.el.components.networked.data.networkId);
+            }
+        }
+    },
+
+    takeOwnership() {
+        if (!NAF.utils.isMine(this.el) && !NAF.utils.takeOwnership(this.el)) return false;
+
+        return true;
+    },
+
+    // The key part in these methods (which are called from the component above) is to
+    // check if we are allowed to change the networked object.  If we own it (isMine() is true)
+    // we can change it.  If we don't own in, we can try to become the owner with
+    // takeOwnership(). If this succeeds, we can set the data.  
+    //
+    // NOTE: takeOwnership ATTEMPTS to become the owner, by assuming it can become the
+    // owner and notifying the networked copies.  If two or more entities try to become
+    // owner,  only one (the last one to try) becomes the owner.  Any state updates done
+    // by the "failed attempted owners" will not be distributed to the other clients,
+    // and will be overwritten (eventually) by updates from the other clients.   By not
+    // attempting to guarantee ownership, this call is fast and synchronous.  Any 
+    // methods for guaranteeing ownership change would take a non-trivial amount of time
+    // because of network latencies.
+    // setScale(scale) {
+    //     if (!NAF.utils.isMine(this.el) && !NAF.utils.takeOwnership(this.el)) return;
+
+    //     this.el.setAttribute("hover-counter", "scale", scale);
+    // },
+
+    // setRotation(rotation) {
+    //     if (!NAF.utils.isMine(this.el) && !NAF.utils.takeOwnership(this.el)) return;
+
+    //     this.el.setAttribute("hover-counter", "rotation", rotation);
+    // },
+
+    initSharedData(dataObject) {
+    },
+
+    setSharedData(dataObject) {
+        if (!NAF.utils.isMine(this.el) && !NAF.utils.takeOwnership(this.el)) return;
+
+        this.el.setAttribute("hover-counter", "index", dataObject.count);
+    }
+});
+
+// Add our template for our networked object to the a-frame assets object,
+// and a schema to the NAF.schemas.  Both must be there to have custom components work
+
+const assets = document.querySelector("a-assets");
+
+assets.insertAdjacentHTML(
+    'beforeend',
+    `
+    <template id="hover-shape-media">
+      <a-entity
+        hover-counter
+      ></a-entity>
+    </template>
+  `
+  )
+
+const vectorRequiresUpdate = epsilon => {
+		return () => {
+			let prev = null;
+			return curr => {
+				if (prev === null) {
+					prev = new THREE.Vector3(curr.x, curr.y, curr.z);
+					return true;
+				} else if (!NAF.utils.almostEqualVec3(prev, curr, epsilon)) {
+					prev.copy(curr);
+					return true;
+				}
+				return false;
+			};
+		};
+	};
+
+NAF.schemas.add({
+  	template: "#hover-shape-media",
+    components: [
+    // {
+    //     component: "hover-counter",
+    //     property: "rotation",
+    //     requiresNetworkUpdate: vectorRequiresUpdate(0.001)
+    // },
+    // {
+    //     component: "hover-counter",
+    //     property: "scale",
+    //     requiresNetworkUpdate: vectorRequiresUpdate(0.001)
+    // },
+    {
+      	component: "hover-counter",
+      	property: "index"
+    }
+    ],
+  });
+
