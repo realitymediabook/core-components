@@ -62,6 +62,7 @@ AFRAME.registerComponent('html-script', {
                 this.netEntity = null
 
                 // bind callbacks
+                this.getSharedData = this.getSharedData.bind(this);
                 this.takeOwnership = this.takeOwnership.bind(this);
                 this.setSharedData = this.setSharedData.bind(this)
 
@@ -140,11 +141,14 @@ AFRAME.registerComponent('html-script', {
                     } else {
                         entity = document.createElement('a-entity')
 
+                        // store the method to retrieve the script data on this entity
+                        entity.getSharedData = this.getSharedData;
+
                         // the "networked" component should have persistent=true, the template and 
                         // networkId set, owner set to "scene" (so that it doesn't update the rest of
                         // the world with it's initial data, and should NOT set creator (the system will do that)
                         entity.setAttribute('networked', {
-                            template: "#hover-shape-media",
+                            template: "#script-data-media",
                             persistent: persistent,
                             owner: "scene",  // so that our initial value doesn't overwrite others
                             networkId: netId
@@ -156,15 +160,15 @@ AFRAME.registerComponent('html-script', {
                     // initialized before getting a pointer to the actual networked component in it
                     this.netEntity = entity;
                     NAF.utils.getNetworkedEntity(this.netEntity).then(networkedEl => {
-                        this.stateSync = networkedEl.components["hover-counter"]
+                        this.stateSync = networkedEl.components["script-data"]
 
                         // if this is the first networked entity, it's sharedData will default to the empty 
                         // string, and we should initialize it with the initial data from the script
                         if (this.stateSync.sharedData === 0) {
                             let networked = networkedEl.components["networked"]
-                            if (networked.data.creator == NAF.clientId) {
-                                this.stateSync.initSharedData(this.script.getSharedData())
-                            }
+                            // if (networked.data.creator == NAF.clientId) {
+                            //     this.stateSync.initSharedData(this.script.getSharedData())
+                            // }
                         }
                     })
                 }
@@ -232,6 +236,16 @@ AFRAME.registerComponent('html-script', {
             return this.stateSync.setSharedData(dataObject)
         }
         return true
+    },
+
+    // this is called from below, to get the initial data from the script
+    getSharedData: function() {
+        if (this.script) {
+            return this.script.getSharedData()
+        }
+        // shouldn't happen
+        console.warn("script-data component called parent element but there is no script yet?")
+        return "{}"
     },
 
     // per frame stuff
@@ -352,147 +366,46 @@ AFRAME.registerComponent('html-script', {
     }
 })
 
-
 //
 // Component for our networked state.  This component does nothing except all us to 
 // change the state when appropriate. We could set this up to signal the component above when
 // something has changed, instead of having the component above poll each frame.
 //
 
-// AFRAME.registerComponent('script-sync', {
-//     schema: {
-//         scriptdata: {default: 0}
-//     },
-//     init: function () {
-//         this.takeOwnership = this.takeOwnership.bind(this);
-//         this.setSharedData = this.setSharedData.bind(this)
-
-//         this.sharedData = 0;
-//         this.dataObject = { count: 0};
-//         this.changed = false
-//     },
-
-//     update() {
-//         // until there is valid data, we aren't going to claim there is an update
-//         //if (this.sharedData === "") return
-        
-//         if (this.sharedData != this.data.scriptdata) { //this.sharedData.localeCompare(this.data.scriptdata) != 0) {
-//             try {
-//                 this.dataObject = {count: this.data.scriptdata}//JSON.parse(decodeURIComponent(this.sharedData))
-
-//                 // do these after the JSON parse to make sure it has succeeded
-//                 this.sharedData = this.data.scriptdata
-//                 this.changed = true  // will be reset by the client component above
-//             } catch(e) {
-//                 console.error("couldn't parse JSON received in script-sync: ", e)
-//                 this.sharedData = ""
-//                 this.dataObject = {}
-//             }
-//         }
-//     },
-
-//     // it is likely that applyPersistentSync only needs to be called for persistent
-//     // networked entities, so we _probably_ don't need to do this.  But if there is no
-//     // persistent data saved from the network for this entity, this command does nothing.
-//     play() {
-//         if (this.el.components.networked) {
-//             // not sure if this is really needed, but can't hurt
-//             if (APP.utils) { // temporary till we ship new client
-//                 APP.utils.applyPersistentSync(this.el.components.networked.data.networkId);
-//             }
-//         }
-//     },
-
-//     // The key part in these methods (which are called from the component above, which are
-//     // in turn called from the HTML script plugins), is to first check if we are allowed 
-//     // to change the networked object (with takeOwnership()) before updating the data.  
-//     // If we own it (isMine() is true) we can change it.  If we don't own in, we can try 
-//     // to become the owner with NAF.utils.takeOwnership(). If this succeeds, we can set the data.  
-//     takeOwnership() {
-//         if (!NAF.utils.isMine(this.el) && !NAF.utils.takeOwnership(this.el)) return false;
-
-//         return true;
-//     },
-
-//     initSharedData(dataObject) {
-//         this.sharedData = dataObject.count
-//         this.dataObject = dataObject
-//     },
-
-//     setSharedData(dataObject) {
-//         if (!NAF.utils.isMine(this.el) && !NAF.utils.takeOwnership(this.el)) return false;
-
-//         try {
-//             var htmlString = dataObject.count; //encodeURIComponent(JSON.stringify(dataObject))
-//             // this.sharedData = htmlString
-//             // this.dataObject = dataObject
-//             this.el.setAttribute("script-sync", "scriptdata", htmlString);
-//             return true
-//         } catch (e) {
-//             console.error("can't stringify the object passed to script-sync")
-//             return false
-//         }
-//     }
-// });
-// // Add our template for our networked object to the a-frame assets object,
-// // and a schema to the NAF.schemas.  Both must be there to have custom components work
-// const assets = document.querySelector("a-assets");
-// assets.insertAdjacentHTML(
-//     'beforeend',
-//     `
-//     <template id="vue-script-sync">
-//       <a-entity
-//         script-sync
-//       ></a-entity>
-//     </template>
-//   `
-//   )
-
-// NAF.schemas.add({
-//   	template: "#vue-script-sync",
-    
-//     components: [
-//     {
-//         component: "script-sync",
-//         property: "scriptdata"
-//     }],
-    
-//     // nonAuthorizedComponents: [
-//     // {
-//     //     component: "script-sync",
-//     //     property: "scriptdata"
-//     // }]
-    
-// });
-
-//
-// Component for our networked state.  This component does nothing except all us to 
-// change the state when appropriate. We could set this up to signal the component above when
-// something has changed, instead of having the component above poll each frame.
-//
-
-AFRAME.registerComponent('hover-counter', {
+AFRAME.registerComponent('script-data', {
     schema: {
-        index: {default: 0},
-        scale: {type: 'vec3', default: { x: 1, y: 1, z: 1}},
-        rotation: {type: 'vec3', default: { x: 0, y: 0, z: 0}}
+        scriptdata: {type: "string", default: "{}"},
     },
     init: function () {
+        this.takeOwnership = this.takeOwnership.bind(this);
         this.setSharedData = this.setSharedData.bind(this);
-        // this.setRotation = this.setRotation.bind(this)
-        // this.setScale = this.setScale.bind(this)
 
-        this.index = -1;
+        this.dataObject = this.el.getSharedData();
+        try {
+            this.sharedData = encodeURIComponent(JSON.stringify(this.dataObject))
+            this.el.setAttribute("script-data", "scriptdata", this.sharedData);
+        } catch(e) {
+            console.error("Couldn't encode initial script data object: ", e, this.dataObject)
+            this.sharedData = "{}"
+            this.dataObject = {}
+        }
         this.changed = false;
     },
 
     update() {
-        this.changed = this.index != this.data.index;
+        this.changed = !(this.sharedData === this.data.scriptdata);
+        if (this.changed) {
+            try {
+                this.dataObject = JSON.parse(decodeURIComponent(this.data.scriptdata))
 
-        this.index = this.data.index;
-
-        if (this.changed) { 
-            this.dataObject = {count: this.index}
+                // do these after the JSON parse to make sure it has succeeded
+                this.sharedData = this.data.scriptdata;
+                this.changed = true
+            } catch(e) {
+                console.error("couldn't parse JSON received in script-sync: ", e)
+                this.sharedData = ""
+                this.dataObject = {}
+            }
         }
     },
 
@@ -514,6 +427,18 @@ AFRAME.registerComponent('hover-counter', {
         return true;
     },
 
+    // initSharedData(dataObject) {
+    //     try {
+    //         var htmlString = encodeURIComponent(JSON.stringify(dataObject))
+    //         this.sharedData = htmlString
+    //         this.dataObject = dataObject
+    //         return true
+    //     } catch (e) {
+    //         console.error("can't stringify the object passed to script-sync")
+    //         return false
+    //     }
+    // },
+
     // The key part in these methods (which are called from the component above) is to
     // check if we are allowed to change the networked object.  If we own it (isMine() is true)
     // we can change it.  If we don't own in, we can try to become the owner with
@@ -527,26 +452,21 @@ AFRAME.registerComponent('hover-counter', {
     // attempting to guarantee ownership, this call is fast and synchronous.  Any 
     // methods for guaranteeing ownership change would take a non-trivial amount of time
     // because of network latencies.
-    // setScale(scale) {
-    //     if (!NAF.utils.isMine(this.el) && !NAF.utils.takeOwnership(this.el)) return;
-
-    //     this.el.setAttribute("hover-counter", "scale", scale);
-    // },
-
-    // setRotation(rotation) {
-    //     if (!NAF.utils.isMine(this.el) && !NAF.utils.takeOwnership(this.el)) return;
-
-    //     this.el.setAttribute("hover-counter", "rotation", rotation);
-    // },
-
-    initSharedData(dataObject) {
-    },
 
     setSharedData(dataObject) {
         if (!NAF.utils.isMine(this.el) && !NAF.utils.takeOwnership(this.el)) return;
 
-        this.el.setAttribute("hover-counter", "index", dataObject.count);
-    }
+        try {
+            var htmlString = encodeURIComponent(JSON.stringify(dataObject))
+            this.sharedData = htmlString
+            this.dataObject = dataObject
+            this.el.setAttribute("script-data", "scriptdata", htmlString);
+            return true
+        } catch (e) {
+            console.error("can't stringify the object passed to script-sync")
+            return false
+        }
+}
 });
 
 // Add our template for our networked object to the a-frame assets object,
@@ -557,9 +477,9 @@ const assets = document.querySelector("a-assets");
 assets.insertAdjacentHTML(
     'beforeend',
     `
-    <template id="hover-shape-media">
+    <template id="script-data-media">
       <a-entity
-        hover-counter
+        script-data
       ></a-entity>
     </template>
   `
@@ -582,22 +502,28 @@ const vectorRequiresUpdate = epsilon => {
 	};
 
 NAF.schemas.add({
-  	template: "#hover-shape-media",
+  	template: "#script-data-media",
     components: [
     // {
-    //     component: "hover-counter",
+    //     component: "script-data",
     //     property: "rotation",
     //     requiresNetworkUpdate: vectorRequiresUpdate(0.001)
     // },
     // {
-    //     component: "hover-counter",
+    //     component: "script-data",
     //     property: "scale",
     //     requiresNetworkUpdate: vectorRequiresUpdate(0.001)
     // },
     {
-      	component: "hover-counter",
-      	property: "index"
-    }
+      	component: "script-data",
+      	property: "scriptdata"
+    }],
+      nonAuthorizedComponents: [
+      {
+            component: "script-data",
+            property: "scriptdata"
+      }
     ],
+
   });
 
