@@ -1,4 +1,4 @@
-import * as htmlComponents from 'https://blairhome.ngrok.io/test-vue-app/dist/hubs.min.js';
+import * as htmlComponents from 'https://resources.realitymedia.digital/test-vue-app/dist/hubs.min.js';
 
 /**
  * Modified from https://github.com/mozilla/hubs/blob/master/src/components/fader.js
