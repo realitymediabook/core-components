@@ -466,7 +466,7 @@ AFRAME.registerComponent('script-data', {
             console.error("can't stringify the object passed to script-sync")
             return false
         }
-}
+    }
 });
 
 // Add our template for our networked object to the a-frame assets object,
