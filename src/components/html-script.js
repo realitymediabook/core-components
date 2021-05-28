@@ -454,7 +454,7 @@ AFRAME.registerComponent('script-data', {
     // because of network latencies.
 
     setSharedData(dataObject) {
-        if (!NAF.utils.isMine(this.el) && !NAF.utils.takeOwnership(this.el)) return;
+        if (!NAF.utils.isMine(this.el) && !NAF.utils.takeOwnership(this.el)) return false;
 
         try {
             var htmlString = encodeURIComponent(JSON.stringify(dataObject))
