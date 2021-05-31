@@ -102,14 +102,23 @@ AFRAME.registerComponent('html-script', {
             // and attached this component to, so remove it if it is there.
             this.el.object3D.children.pop()
 
+            // make sure "isStatic" is correct;  can't be static if either interactive or networked
+            if (this.script.isStatic && (this.script.isInteractive || this.script.isNetworked)) {
+                this.script.isStatic = false;
+            }
+            
+            
             // add in our container
             this.el.object3D.add(this.simpleContainer)
-            setInterval(() => {
-                // update on a regular basis
-                this.script.webLayer3D.refresh(true)
-                this.script.webLayer3D.update(true)
-            }, 50)
 
+            if (!this.script.isStatic) {
+                setInterval(() => {
+                    // update on a regular basis
+                    this.script.webLayer3D.refresh(true)
+                    this.script.webLayer3D.update(true)
+                }, 50)
+            }
+            
             if (this.script.isInteractive) {
                 // make the html object clickable
                 this.el.setAttribute('is-remote-hover-target','')
