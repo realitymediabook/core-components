@@ -76,8 +76,20 @@ AFRAME.registerComponent('html-script', {
             // this.script.webLayer3D._webLayer._hashingCanvas.width = 20
             // this.script.webLayer3D._webLayer._hashingCanvas.height = 20
 
-            const width = this.script.width
-            const height = this.script.height
+            // lets figure out the scale, but scaling to fill the a 1x1m square, that has also
+            // potentially been scaled by the parents parent node. If we scale the entity in spoke,
+            // this is where the scale is set.  If we drop a node in and scale it, the scale is also
+            // set there.
+            // We used to have a fixed size passed back from the entity, but that's too restrictive:
+            // const width = this.script.width
+            // const height = this.script.height
+
+            var parent2 = this.el.parentEl.parentEl.object3D
+            var width = parent2.scale.x
+            var height = parent2.scale.y
+            parent2.scale.x = 1
+            parent2.scale.y = 1
+
             if (width && width > 0 && height && height > 0) {
                 var bbox = new THREE.Box3().setFromObject(this.script.webLayer3D);
                 var wsize = bbox.max.x - bbox.min.x
