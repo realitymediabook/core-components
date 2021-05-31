@@ -94,10 +94,15 @@ AFRAME.registerComponent('html-script', {
                 var bbox = new THREE.Box3().setFromObject(this.script.webLayer3D);
                 var wsize = bbox.max.x - bbox.min.x
                 var hsize = bbox.max.y - bbox.min.y
-                var scale = Math.max(width / wsize, height / hsize)
+                var scale = Math.min(width / wsize, height / hsize)
                 this.simpleContainer.scale.set(scale,scale,scale)
             }
 
+            // there will be one element already, the cube we created in blender
+            // and attached this component to, so remove it if it is there.
+            this.el.object3D.pop()
+
+            // add in our container
             this.el.object3D.add(this.simpleContainer)
             setInterval(() => {
                 // update on a regular basis
