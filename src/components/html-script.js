@@ -100,7 +100,7 @@ AFRAME.registerComponent('html-script', {
 
             // there will be one element already, the cube we created in blender
             // and attached this component to, so remove it if it is there.
-            this.el.object3D.pop()
+            this.el.object3D.children.pop()
 
             // add in our container
             this.el.object3D.add(this.simpleContainer)
