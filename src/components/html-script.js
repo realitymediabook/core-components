@@ -111,14 +111,14 @@ AFRAME.registerComponent('html-script', {
             // add in our container
             this.el.object3D.add(this.simpleContainer)
 
-            if (!this.script.isStatic) {
-                setInterval(() => {
-                    // update on a regular basis
-                    this.script.webLayer3D.refresh(true)
-                    this.script.webLayer3D.update(true)
-                }, 50)
-            }
-            
+            // if (!this.script.isStatic) {
+            //     setInterval(() => {
+            //         // update on a regular basis
+            //       //  this.script.webLayer3D.refresh(true)
+            //         this.script.webLayer3D.update(true)
+            //     }, 50)
+            // }
+
             if (this.script.isInteractive) {
                 // make the html object clickable
                 this.el.setAttribute('is-remote-hover-target','')
@@ -335,6 +335,10 @@ AFRAME.registerComponent('html-script', {
                 this.stateSync.changed = false
                 this.script.updateSharedData(this.stateSync.dataObject)
             }
+        }
+
+        if (!this.script.isStatic) {
+            this.script.webLayer3D.update(true)
         }
     },
   
