@@ -69,10 +69,11 @@ AFRAME.registerComponent('html-script', {
                 this.script.setNetworkMethods(this.takeOwnership, this.setSharedData)
             }
 
-            // set up the local content and hook it to the threejs scene
-            this.simpleContainer = new THREE.Object3D()
-            this.simpleContainer.matrixAutoUpdate = true
-            this.simpleContainer.add(this.script.webLayer3D)
+            // set up the local content and hook it to the scene
+            const scriptEl = document.createElement('a-entity')
+            this.simpleContainer = scriptEl
+            this.simpleContainer.object3D.matrixAutoUpdate = true
+            this.simpleContainer.object3D.add(this.script.webLayer3D)
             // this.script.webLayer3D._webLayer._hashingCanvas.width = 20
             // this.script.webLayer3D._webLayer._hashingCanvas.height = 20
 
@@ -95,7 +96,7 @@ AFRAME.registerComponent('html-script', {
                 var wsize = bbox.max.x - bbox.min.x
                 var hsize = bbox.max.y - bbox.min.y
                 var scale = Math.min(width / wsize, height / hsize)
-                this.simpleContainer.scale.set(scale,scale,scale)
+                this.simpleContainer.setAttribute("scale", { x: scale, y: scale, z: scale});
             }
 
             // there will be one element already, the cube we created in blender
@@ -109,7 +110,7 @@ AFRAME.registerComponent('html-script', {
             
             
             // add in our container
-            this.el.object3D.add(this.simpleContainer)
+            this.el.appendChild(this.simpleContainer)
 
             // if (!this.script.isStatic) {
             //     setInterval(() => {
@@ -121,15 +122,29 @@ AFRAME.registerComponent('html-script', {
 
             if (this.script.isInteractive) {
                 // make the html object clickable
-                this.el.setAttribute('is-remote-hover-target','')
-                this.el.setAttribute('tags', {singleActionButton: true})
-                this.el.classList.add("interactable")
-                
+                this.simpleContainer.setAttribute('is-remote-hover-target','')
+                this.simpleContainer.setAttribute('tags', {singleActionButton: true})
+                this.simpleContainer.setAttribute('class', "interactable")
+
                 // forward the 'interact' events to our object 
                 this.clicked = this.clicked.bind(this)
-                this.el.object3D.addEventListener('interact', this.clicked)
+                this.simpleContainer.object3D.addEventListener('interact', this.clicked)
 
-                this.raycaster = new THREE.Raycaster()
+                if (this.script.isDraggable) {
+                    // we aren't going to really deal with this till we have a use case, but
+                    // we can set it up for now
+                    this.simpleContainer.setAttribute('tags', {singleActionButton: true, 
+                        isHoldable: true,  holdableButton: true})
+    
+                    this.simpleContainer.object3D.addEventListener('holdable-button-down', (evt) => {
+                        this.script.dragStart(evt)
+                    })
+                    this.simpleContainer.object3D.addEventListener('holdable-button-up', (evt) => {
+                        this.script.dragEnd(evt)
+                    })
+                }
+
+                //this.raycaster = new THREE.Raycaster()
                 this.hoverRayL = new THREE.Ray()
                 this.hoverRayR = new THREE.Ray()
             }
@@ -238,14 +253,16 @@ AFRAME.registerComponent('html-script', {
 
     // handle "interact" events for clickable entities
     clicked: function(evt) {
-        const obj = evt.object3D
-        this.raycaster.ray.set(obj.position, this.script.webLayer3D.getWorldDirection(new THREE.Vector3()).negate())
-        const hit = this.script.webLayer3D.hitTest(this.raycaster.ray)
-        if (hit) {
-          hit.target.click()
-          hit.target.focus()
-          console.log('hit', hit.target, hit.layer)
-        }   
+        this.script.clicked(evt)
+
+        // const obj = evt.object3D
+        // this.raycaster.ray.set(obj.position, this.script.webLayer3D.getWorldDirection(new THREE.Vector3()).negate())
+        // const hit = this.script.webLayer3D.hitTest(this.raycaster.ray)
+        // if (hit) {
+        //   hit.target.click()
+        //   hit.target.focus()
+        //   console.log('hit', hit.target, hit.layer)
+        // }   
     },
   
     // methods that will be passed to the html object so they can update networked data
@@ -287,11 +304,12 @@ AFRAME.registerComponent('html-script', {
             const interaction = this.el.sceneEl.systems.interaction;
             if (!interaction.ready) return; //DOMContentReady workaround
             
-            if (interaction.state.leftHand.hovered === this.el && !interaction.state.leftHand.held) {
+            let hoverEl = this.simpleContainer
+            if (interaction.state.leftHand.hovered === hoverEl && !interaction.state.leftHand.held) {
               interactorOne = interaction.options.leftHand.entity.object3D;
             }
             if (
-              interaction.state.leftRemote.hovered === this.el &&
+              interaction.state.leftRemote.hovered === hoverEl &&
               !interaction.state.leftRemote.held &&
               !toggling.leftToggledOff
             ) {
@@ -306,13 +324,13 @@ AFRAME.registerComponent('html-script', {
                 passthruInteractor.push(this.hoverRayL)
             }
             if (
-              interaction.state.rightRemote.hovered === this.el &&
+              interaction.state.rightRemote.hovered === hoverEl &&
               !interaction.state.rightRemote.held &&
               !toggling.rightToggledOff
             ) {
               interactorTwo = interaction.options.rightRemote.entity.object3D;
             }
-            if (interaction.state.rightHand.hovered === this.el && !interaction.state.rightHand.held) {
+            if (interaction.state.rightHand.hovered === hoverEl && !interaction.state.rightHand.held) {
                 interactorTwo = interaction.options.rightHand.entity.object3D;
             }
             if (interactorTwo) {
@@ -381,14 +399,9 @@ AFRAME.registerComponent('html-script', {
 
     destroyScript: function () {
         if (this.script.isInteractive) {
-            // make the html object clickable
-            this.el.removeAttribute('is-remote-hover-target')
-            this.el.removeAttribute('tags')
-            this.el.classList.remove("interactable")
-            
-            this.el.object3D.removeEventListener('interact', this.clicked)
+            this.simpleContainer.object3D.removeEventListener('interact', this.clicked)
         }
-        this.el.object3D.remove(this.simpleContainer)
+        this.el.removeChild(this.simpleContainer)
         this.simpleContainer = null
 
         this.script.destroy()
