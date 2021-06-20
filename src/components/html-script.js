@@ -1,21 +1,15 @@
 /**
  * Description
  * ===========
- * create a text object by rendering HTML
+ * create a HTML object by rendering a script that creates and manages it
  *
- * Usage
- * =====
- * Create a plane in Blender and give it a material (just the default Principled BSDF).
- * Assign color image to "color" channel and depth map to "emissive" channel.
- * You may want to set emissive strength to zero so the preview looks better.
- * Add the "parallax" component from the Hubs extension, configure, and export as .glb
  */
 
 //import {WebLayer3D, toDOM, THREE} from '/node_modules/ethereal/dist/ethereal.es.js'
 
 // const errorHTML = '<div id="hello" xr-width="2" style="width: 200px; height: 30px; background: rgba(1, 0, 0, 0.6); position:absolute">No Text Provided</div>'
 
-import * as htmlComponents from "https://resources.realitymedia.digital/test-vue-app/dist/hubs.min.js";
+import * as htmlComponents from "https://resources.realitymedia.digital/vue-apps/dist/hubs.js";
 
 AFRAME.registerComponent('html-script', {
     schema: {

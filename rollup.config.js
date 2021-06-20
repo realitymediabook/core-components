@@ -4,9 +4,9 @@ import replace from '@rollup/plugin-replace'
 
 var componentPath
 if ((process.env.BUILD !== 'production')) {
-    componentPath = "https://blairhome.ngrok.io/test-vue-app/";
+    componentPath = "https://blairhome.ngrok.io/vue-apps/";
 } else {
-    componentPath = "https://resources.realitymedia.digital/test-vue-app/";
+    componentPath = "https://resources.realitymedia.digital/vue-apps/";
 }
 
 export default {
@@ -24,7 +24,7 @@ export default {
     plugins: [
         nodeResolve(),
         replace({
-            'https://resources.realitymedia.digital/test-vue-app/': componentPath //JSON.stringify( componentPath )
+            'https://resources.realitymedia.digital/vue-apps/': componentPath //JSON.stringify( componentPath )
         }),  
     ]
 };
