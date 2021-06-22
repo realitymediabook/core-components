@@ -9,15 +9,15 @@ if ((process.env.BUILD !== 'production')) {
     componentPath = "https://resources.realitymedia.digital/vue-apps/";
 }
 
-export default {
-    input: 'src/rooms/index.js',
+export default ['index', 'main-room'].map((name, index) => ({
+    input: `src/rooms/${name}.js`,
     output: [{
-        file: './build/main.js',
+        file: `./build/${name}.js`,
         format: 'es',
         sourcemap: 'inline'
     },
     {
-        file: './build/main.min.js',
+        file: `./build/${name}.min.js`,
         format: 'es',
         plugins: [terser()]
     }],
@@ -27,4 +27,4 @@ export default {
             'https://resources.realitymedia.digital/vue-apps/': componentPath //JSON.stringify( componentPath )
         }),  
     ]
-};
+}));

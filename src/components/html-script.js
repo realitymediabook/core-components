@@ -86,7 +86,7 @@ AFRAME.registerComponent('html-script', {
             parent2.scale.y = 1
 
             if (width && width > 0 && height && height > 0) {
-                setTimeout(() => {
+              //  setTimeout(() => {
                     // need to delay this calculation
 
                     // var bbox = new THREE.Box3().setFromObject(this.script.webLayer3D);
@@ -95,7 +95,7 @@ AFRAME.registerComponent('html-script', {
                     const {width: wsize, height: hsize} = this.script.getSize()
                     var scale = Math.min(width / wsize, height / hsize)
                     this.simpleContainer.setAttribute("scale", { x: scale, y: scale, z: scale});
-                }, 100)
+             //   }, 1)
             }
 
             // there will be one element already, the cube we created in blender
