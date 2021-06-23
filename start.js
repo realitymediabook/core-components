@@ -17,7 +17,7 @@ app.use('/', serveIndex(root))
 app.listen(port, () => {
   // if you have a paid ngrok account, put the subdomain you reserved below.  If you don't,
   // remove the subdomain parameter and ngrok will print the URL to the terminal
-  ngrok.connect({ addr: port, subdomain: 'profblair' }).then((url) => {
+  ngrok.connect({ addr: port, subdomain: 'profjay' }).then((url) => {
     console.clear()
     console.log('Custom room scripts served at:\n')
     console.log(`> Local URL:\thttps://localhost:${port}/`)

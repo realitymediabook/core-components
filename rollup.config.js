@@ -4,7 +4,7 @@ import replace from '@rollup/plugin-replace'
 
 var componentPath
 if ((process.env.BUILD !== 'production')) {
-    componentPath = "https://blairhome.ngrok.io/vue-apps/";
+    componentPath = "https://jayhome.ngrok.io/vue-apps/";
 } else {
     componentPath = "https://resources.realitymedia.digital/vue-apps/";
 }
