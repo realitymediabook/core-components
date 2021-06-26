@@ -21,5 +21,5 @@ AFRAME.GLTFModelPlus.registerComponent('region-hider', 'region-hider')
 //  videoComp.Component.prototype.isMineOrLocal = myisMineOrLocal;
 
 // add the region-hider to the scene
-const scene = document.querySelector("a-scene");
-scene.setAttribute("region-hider", {size: 100})
+// const scene = document.querySelector("a-scene");
+// scene.setAttribute("region-hider", {size: 100})rr

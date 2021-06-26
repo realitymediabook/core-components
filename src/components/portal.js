@@ -18,6 +18,7 @@ import './proximity-events.js'
 import vertexShader from '../shaders/portal.vert.js'
 import fragmentShader from '../shaders/portal.frag.js'
 import snoise from '../shaders/snoise.js'
+import { showRegionForObject, hiderRegionForObject } from './region-hider.js'
 
 const worldPos = new THREE.Vector3()
 const worldCameraPos = new THREE.Vector3()
@@ -133,7 +134,9 @@ AFRAME.registerComponent('portal', {
         this.el.object3D.add(this.cubeCamera)
         this.other.components.portal.material.uniforms.cubeMap.value = this.cubeCamera.renderTarget.texture
         this.el.sceneEl.addEventListener('model-loaded', () => {
-          this.cubeCamera.update(this.el.sceneEl.renderer, this.el.sceneEl.object3D)
+            showRegionForObject(this.el)
+            this.cubeCamera.update(this.el.sceneEl.renderer, this.el.sceneEl.object3D)
+            hiderRegionForObject(this.el)
         })
     }
 

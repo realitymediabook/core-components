@@ -24,7 +24,9 @@
     {
       "extensions": {
         "MOZ_hubs_components": {
-          "html-text": null
+          "region-hider": { 
+              "size": 50
+          }
         }
       },
       "name": "Entity"
