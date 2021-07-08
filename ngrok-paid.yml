@@ -1,0 +1,11 @@
+tunnels:
+  core-components:
+    proto: http
+    bind_tls: true
+    addr: 6000
+    subdomain: blair-core
+  vue-apps:
+    proto: http
+    bind_tls: true
+    addr: 5000
+    subdomain: blair-vue-apps

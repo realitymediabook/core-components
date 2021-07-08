@@ -11,6 +11,18 @@
 
 import * as htmlComponents from "https://resources.realitymedia.digital/vue-apps/dist/hubs.js";
 
+// var htmlComponents;
+// var scriptPromise;
+// if (window.__testingVueApps) {
+//     scriptPromise = import(window.__testingVueApps)    
+// } else {
+//     scriptPromise = import("https://resources.realitymedia.digital/vue-apps/dist/hubs.js") 
+// }
+// // scriptPromise = scriptPromise.then(module => {
+// //     return module
+// // });
+
+
 AFRAME.registerComponent('html-script', {
     schema: {
         // name must follow the pattern "*_componentName"
@@ -84,6 +96,7 @@ AFRAME.registerComponent('html-script', {
             var height = parent2.scale.y
             parent2.scale.x = 1
             parent2.scale.y = 1
+            parent2.scale.z = 1
 
             if (width && width > 0 && height && height > 0) {
               //  setTimeout(() => {
@@ -381,6 +394,15 @@ AFRAME.registerComponent('html-script', {
   },
 
   loadScript: async function () {
+        // if (scriptPromise) {
+        //     try {
+        //         htmlComponents = await scriptPromise;
+        //     } catch(e) {
+        //         console.error(e);
+        //         return
+        //     }
+        //     scriptPromise = null
+        // }
         var initScript = htmlComponents[this.componentName]
         if (!initScript) {
             console.warn("'html-script' component doesn't have script for " + this.componentName);
