@@ -618,12 +618,12 @@
             "default": ""
           }
         }
-      },
-      "portal": {
+    },
+    "portal": {
         "category": "Elements",
         "node": true,
         "properties": {}
-      },
+    },
     "video-texture-source": {
       "category": "Scene",
       "node": true,
