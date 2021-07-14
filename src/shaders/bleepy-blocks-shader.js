@@ -1,38 +1,35 @@
 // simple shader taken from https://threejsfundamentals.org/threejs/lessons/threejs-shadertoy.html
 // which in turn is from https://www.shadertoy.com/view/MsXSzM
+import shaderToyMain from "./shaderToyMain"
+import shaderToyUniformObj from "./shaderToyUniformObj"
+import shaderToyUniform_paras from "./shaderToyUniform_paras"
 
 const glsl = String.raw
 
-// set up some resources
-const loader = new THREE.TextureLoader();
-const bayer = loader.load('https://resources.realitymedia.digital/data/images/bayer.png');
-bayer.minFilter = THREE.NearestFilter;
-bayer.magFilter = THREE.NearestFilter;
-bayer.wrapS = THREE.RepeatWrapping;
-bayer.wrapT = THREE.RepeatWrapping;
+const uniforms = Object.assign({}, shaderToyUniformObj, {
+    iChannel0: { value: null }
+})
 
-const BleepyBlocksShader = {
-  uniforms: {
-    iTime: { value: 0 },
-    iResolution:  { value: new THREE.Vector3(1, 1, 1) },
-    iChannel0: { value: bayer },
-  },
+const loader = new THREE.TextureLoader()
+var bayerTex = null
+loader.load('https://resources.realitymedia.digital/data/images/bayer.png', (bayer) => {
+    bayer.minFilter = THREE.NearestFilter;
+    bayer.magFilter = THREE.NearestFilter;
+    bayer.wrapS = THREE.RepeatWrapping;
+    bayer.wrapT = THREE.RepeatWrapping;
+    bayerTex = bayer
+})
+    
+let BleepyBlocksShader = {
+  uniforms: uniforms,
 
-  vertexShader: glsl`
-      varying vec2 vUv;
-      void main() {
-        vUv = uv;
-        gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
-      }
-  `,
+  vertexShader: {},
 
-  fragmentShader: glsl`
-      #include <common>
-
-      uniform vec3 iResolution;
-      uniform float iTime;
+  fragmentShader: { 
+        uniforms: shaderToyUniform_paras + glsl`
       uniform sampler2D iChannel0;
-
+        `,
+        functions: glsl`
       // By Daedelus: https://www.shadertoy.com/user/Daedelus
       // license: Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
       #define TIMESCALE 0.25 
@@ -54,13 +51,19 @@ const BleepyBlocksShader = {
         
         fragColor = vec4(COLOR, 1.0) * p;
       }
+      `,
+        replaceMap: shaderToyMain
+    },
+    init: function(material) {
+        material.uniforms.texRepeat = { value: material.map.repeat }
+        material.uniforms.texOffset = { value: material.map.offset }
+        material.uniforms.texFlipY = { value: material.map.flipY ? 1 : 0 }
+        material.uniforms.iChannel0.value = bayerTex
+    },
+    updateUniforms: function(time, material) {
+        material.uniforms.iTime.value = time * 0.001
+        material.uniforms.iChannel0.value = bayerTex
+    }
 
-      varying vec2 vUv;
-
-      void main() {
-        mainImage(gl_FragColor, vUv * iResolution.xy);
-      }
-  `,
 }
-
 export { BleepyBlocksShader }

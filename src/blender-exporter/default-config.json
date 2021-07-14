@@ -44,6 +44,38 @@
     }
   },
   "components": {
+    "html-script": {
+        "category": "AEL",
+        "node": true,
+        "scene": false,
+        "material": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "default": ""
+          }
+        }
+    },
+    "portal": {
+        "category": "AEL",
+        "node": true,
+        "scene": false,
+        "material": false,
+        "properties": {}
+    },
+    "shader": {
+        "category": "AEL",
+        "node": false,
+        "scene": false,
+        "material": true,
+        "properties": {
+          "name": {
+            "type": "string",
+            "default": "$name"
+          }
+        }
+      },
+
     "background": {
       "category": "Scene",
       "scene": true,
@@ -608,21 +640,6 @@
           "default": false
         }
       }
-    },
-    "html-script": {
-        "category": "Elements",
-        "node": true,
-        "properties": {
-          "name": {
-            "type": "string",
-            "default": ""
-          }
-        }
-    },
-    "portal": {
-        "category": "Elements",
-        "node": true,
-        "properties": {}
     },
     "video-texture-source": {
       "category": "Scene",
