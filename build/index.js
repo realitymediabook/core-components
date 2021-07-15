@@ -1,4 +1,4 @@
-import * as htmlComponents from 'https://resources.realitymedia.digital/vue-apps/dist/hubs.js';
+import * as htmlComponents from 'https://blair-vue-apps.ngrok.io/vue-apps/dist/hubs.js';
 
 /**
  * Modified from https://github.com/mozilla/hubs/blob/master/src/components/fader.js
@@ -1275,7 +1275,7 @@ function mapLinearClamped(x, a1, a2, b1, b2) {
 // if (window.__testingVueApps) {
 //     scriptPromise = import(window.__testingVueApps)    
 // } else {
-//     scriptPromise = import("https://resources.realitymedia.digital/vue-apps/dist/hubs.js") 
+//     scriptPromise = import("https://blair-vue-apps.ngrok.io/vue-apps/dist/hubs.js") 
 // }
 // // scriptPromise = scriptPromise.then(module => {
 // //     return module

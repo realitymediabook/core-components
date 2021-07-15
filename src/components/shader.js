@@ -11,6 +11,7 @@ import { THREE } from 'ethereal'
 import { GalaxyShader } from '../shaders/galaxy.js'
 import { LaceTunnelShader } from '../shaders/lace-tunnel.js'
 import { MistShader } from '../shaders/mist.js'
+import { Marble1Shader } from '../shaders/marble1.js'
 
 const vec = new THREE.Vector3()
 const forward = new THREE.Vector3(0, 0, 1)
@@ -35,7 +36,7 @@ AFRAME.registerComponent('shader', {
             break;
     
         case "bleepyblocks":
-            shaderDef = BleepyBlocksShader
+            shaderDef = Marble1Shader
             break;
 
         case "galaxy":
@@ -50,7 +51,11 @@ AFRAME.registerComponent('shader', {
             shaderDef = MistShader
             break;
 
-        default:
+        case "marble1":
+            shaderDef = Marble1Shader
+            break;
+
+            default:
             // an unknown name was passed in
             console.warn("unknown name '" + this.data.name + "' passed to shader component")
             return 
