@@ -36,7 +36,7 @@ AFRAME.registerComponent('shader', {
             break;
     
         case "bleepyblocks":
-            shaderDef = Marble1Shader
+            shaderDef = BleepyBlocksShader
             break;
 
         case "galaxy":
@@ -83,7 +83,7 @@ AFRAME.registerComponent('shader', {
 
       this.el.object3DMap.mesh.material = material
       this.material = material 
-      this.shader = true
+ //     this.shader = true
       this.shaderDef = shaderDef
   },
 
@@ -100,9 +100,9 @@ AFRAME.registerComponent('shader', {
             break;
     }
 
-    if (this.shader) {
-        console.log("fragment shader:", this.material.fragmentShader)
-        this.shader = null
-    }
+    // if (this.shader) {
+    //     console.log("fragment shader:", this.material.fragmentShader)
+    //     this.shader = null
+    // }
   },
 })

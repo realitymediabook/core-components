@@ -411,9 +411,9 @@
   "resolved" "https://registry.npmjs.org/etag/-/etag-1.8.1.tgz"
   "version" "1.8.1"
 
-"ethereal@file:../../gatech/ethereal/packages/ethereal":
+"ethereal@^2.0":
   "resolved" "file:../../gatech/ethereal/packages/ethereal"
-  "version" "2.0.7"
+  "version" "2.0.8"
   dependencies:
     "@etherealjs/core" "^2.0.0"
     "@etherealjs/web-layer" "^2.0.0"

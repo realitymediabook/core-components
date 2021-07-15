@@ -33,6 +33,7 @@ AFRAME.registerComponent('html-script', {
         this.fullName = this.data.name;
         this.parseNodeName();
         this.createScript();
+        this.updateTime = 100
     },
 
     update: function () {
@@ -367,7 +368,15 @@ AFRAME.registerComponent('html-script', {
             }
         }
 
+        //if (this.script.isStatic && this.updateTime-- > 0) {
+        if (this.script.isStatic && this.updateTime < time) {
+            this.script.webLayer3D.update(true)
+            // wait a bit and do it again.  May get rid of this some day, we'll see
+            this.updateTime = Math.random() * 2000 + 1000;
+        }
+
         if (!this.script.isStatic) {
+            this.updateTime = time
             this.script.webLayer3D.update(true)
         }
     },

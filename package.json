@@ -23,6 +23,6 @@
     "serve-index": "^1.9.1"
   },
   "dependencies": {
-    "ethereal": "file:../../gatech/ethereal/packages/ethereal"
+    "ethereal": "^2.0"
   }
 }
