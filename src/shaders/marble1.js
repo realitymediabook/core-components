@@ -56,7 +56,9 @@ let Marble1Shader = {
         mb_scaleByPrev: { value: state.scaleByPrev },
         mb_sharpen: { value: state.sharpen },
         mb_time: { value: 0 },
-        mb_timeScale: { value: [state.timeScaleX, state.timeScaleY] }
+        mb_timeScale: { value: [state.timeScaleX, state.timeScaleY] },
+        texRepeat: { value: new THREE.Vector2(1,1) },
+        texOffset: { value: new THREE.Vector2(0,0) }    
     },
     vertexShader: {},
 
@@ -83,7 +85,9 @@ let Marble1Shader = {
             uniform bool mb_sharpen;
             uniform float mb_time;
             uniform vec2 mb_timeScale;
-        `,
+            uniform vec2 texRepeat;
+            uniform vec2 texOffset;
+                    `,
         functions: glsl`
         // Some useful functions
         vec3 mb_mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
@@ -219,7 +223,14 @@ let Marble1Shader = {
 
         vec2 q;
         vec2 r;
-        float f = mb_pattern(vUv, q, r);
+
+        vec2 uv = mod(vUv.xy, vec2(1.0,1.0)); 
+        if (uv.x < 0.0) { uv.x = uv.x + 1.0;}
+        if (uv.y < 0.0) { uv.y = uv.y + 1.0;}
+        uv.x = clamp(uv.x, 0.0, 1.0);
+        uv.y = clamp(uv.y, 0.0, 1.0);
+
+        float f = mb_pattern(uv, q, r);
         
         marbleColor = mix(mb_color1, mb_color2, f);
         marbleColor = mix(marbleColor, mb_color3, length(q) / 2.0);
@@ -233,7 +244,12 @@ let Marble1Shader = {
     init: function(material) {
         material.uniforms.texRepeat = { value: material.map.repeat }
         material.uniforms.texOffset = { value: material.map.offset }
-        material.uniforms.texFlipY = { value: material.map.flipY ? 1 : 0 }
+        material.uniforms.mb_invert = { value: material.map.flipY ? !state.invert : state.invert }
+
+        // lets add a bit of randomness to the input so multiple instances are different
+        let rx = Math.random()
+        material.uniforms.mb_offsetA = { value: new THREE.Vector2( state.offsetAX + Math.random(), state.offsetAY + Math.random()) }
+        material.uniforms.mb_offsetB = { value: new THREE.Vector2( state.offsetBX + Math.random(), state.offsetBY + Math.random()) }
     },
     updateUniforms: function(time, material) {
         material.uniforms.mb_time.value = time * 0.001

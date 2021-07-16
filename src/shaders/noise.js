@@ -13,35 +13,44 @@ let NoiseShader = {
     fragmentShader: {
         uniforms: shaderToyUniform_paras,
         functions: glsl`
-      // from https://www.shadertoy.com/view/ltB3zD
-      //
-      // Gold Noise Copyright 2015 dcerisano@standard3d.com
-      // - based on the Golden Ratio
-      // - uniform normalized distribution
-      // - fastest static noise generator function (also runs at low precision)
-      // - use with indicated seeding method
+        #define nPI 3.1415926535897932
 
-      const float PHI = 1.61803398874989484820459; // Φ = Golden Ratio 
-
-      float gold_noise(in vec2 xy, in float seed)
-      {
-        return fract(tan(distance(xy*PHI, xy)*seed)*xy.x);
-      }
-
-      void mainImage(out vec4 rgba, in vec2 xy)
-      {
-        rgba = vec4(gold_noise(xy, fract(iTime)+1.0), // r
-                    gold_noise(xy, fract(iTime)+2.0), // g
-                    gold_noise(xy, fract(iTime)+3.0), // b
-                    1.0);                             // α
-      }
-    `,
+        mat2 n_rotate2d(float angle){
+                return mat2(cos(angle),-sin(angle),
+                            sin(angle), cos(angle));
+        }
+        
+        float n_stripe(float number) {
+                float mod = mod(number, 2.0);
+                //return step(0.5, mod)*step(1.5, mod);
+                //return mod-1.0;
+                return min(1.0, (smoothstep(0.0, 0.5, mod) - smoothstep(0.5, 1.0, mod))*1.0);
+        }
+        
+        void mainImage( out vec4 fragColor, in vec2 fragCoord ) {
+                vec2 u_resolution = iResolution.xy;
+                float u_time = iTime;
+                vec3 color;
+                vec2 st = fragCoord.xy;
+                st += 2000.0 + 998000.0*step(1.75, 1.0-sin(u_time/8.0));
+                st += u_time/2000.0;
+                float m = (1.0+9.0*step(1.0, 1.0-sin(u_time/8.0)))/(1.0+9.0*step(1.0, 1.0-sin(u_time/16.0)));
+                vec2 st1 = st * (400.0 + 1200.0*step(1.75, 1.0+sin(u_time)) - 300.0*step(1.5, 1.0+sin(u_time/3.0)));
+                st = n_rotate2d(sin(st1.x)*sin(st1.y)/(m*100.0+u_time/100.0)) * st;
+                vec2 st2 = st * (100.0 + 1900.0*step(1.75, 1.0-sin(u_time/2.0)));
+                st = n_rotate2d(cos(st2.x)*cos(st2.y)/(m*100.0+u_time/100.0)) * st;
+                st = n_rotate2d(0.5*nPI+(nPI*0.5*step( 1.0,1.0+ sin(u_time/1.0)))
+                              +(nPI*0.1*step( 1.0,1.0+ cos(u_time/2.0)))+u_time*0.0001) * st;
+                st *= 10.0;
+                st /= u_resolution;
+                color = vec3(n_stripe(st.x*u_resolution.x/10.0+u_time/10.0));
+                fragColor = vec4(color, 1.0);
+        }
+            `,
     replaceMap: shaderToyMain
     },
     init: function(material) {
-        material.uniforms.texRepeat = { value: material.map.repeat }
-        material.uniforms.texOffset = { value: material.map.offset }
-        material.uniforms.texFlipY = { value: material.map.flipY ? 1 : 0 }
+        //   terial.uniforms.texFlipY = { value: material.map.flipY ? 1 : 0 }
     },
     updateUniforms: function(time, material) {
         material.uniforms.iTime.value = time * 0.001

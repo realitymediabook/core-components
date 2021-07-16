@@ -121,9 +121,10 @@ let GalaxyShader = {
         material.uniforms.texOffset = { value: material.map.offset }
         material.uniforms.texFlipY = { value: material.map.flipY ? 1 : 0 }
         material.uniforms.iChannel0.value = noiseTex
+        material.userData.timeOffset = Math.random() * 100000
     },
     updateUniforms: function(time, material) {
-        material.uniforms.iTime.value = time * 0.001
+        material.uniforms.iTime.value = (time * 0.001) + material.userData.timeOffset
         material.uniforms.iChannel0.value = noiseTex
     }
 }

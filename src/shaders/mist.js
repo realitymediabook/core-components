@@ -73,9 +73,10 @@ let MistShader = {
         material.uniforms.texRepeat = { value: material.map.repeat }
         material.uniforms.texOffset = { value: material.map.offset }
         material.uniforms.texFlipY = { value: material.map.flipY ? 1 : 0 }
+        material.userData.timeOffset = Math.random() * 10
     },
     updateUniforms: function(time, material) {
-        material.uniforms.iTime.value = time * 0.001
+        material.uniforms.iTime.value = (time * 0.0012) + material.userData.timeOffset
     }
 }
 
