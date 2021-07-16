@@ -50,7 +50,8 @@ let NoiseShader = {
     replaceMap: shaderToyMain
     },
     init: function(material) {
-        //   terial.uniforms.texFlipY = { value: material.map.flipY ? 1 : 0 }
+        // we seem to want to flip the flipY
+        material.uniforms.texFlipY = { value: material.map.flipY ? 0 : 1 }
     },
     updateUniforms: function(time, material) {
         material.uniforms.iTime.value = time * 0.001

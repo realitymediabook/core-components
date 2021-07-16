@@ -72,7 +72,8 @@ let MistShader = {
     init: function(material) {
         material.uniforms.texRepeat = { value: material.map.repeat }
         material.uniforms.texOffset = { value: material.map.offset }
-        material.uniforms.texFlipY = { value: material.map.flipY ? 1 : 0 }
+        // we seem to want to flip the flipY
+        material.uniforms.texFlipY = { value: material.map.flipY ? 0 : 1 }
         material.userData.timeOffset = Math.random() * 10
     },
     updateUniforms: function(time, material) {

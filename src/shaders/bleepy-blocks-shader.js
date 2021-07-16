@@ -3,6 +3,7 @@
 import shaderToyMain from "./shaderToyMain"
 import shaderToyUniformObj from "./shaderToyUniformObj"
 import shaderToyUniform_paras from "./shaderToyUniform_paras"
+import bayerImage from '../assets/bayer.png'
 
 const glsl = String.raw
 
@@ -12,7 +13,7 @@ const uniforms = Object.assign({}, shaderToyUniformObj, {
 
 const loader = new THREE.TextureLoader()
 var bayerTex = null
-loader.load('https://resources.realitymedia.digital/data/images/bayer.png', (bayer) => {
+loader.load(bayerImage, (bayer) => {
     bayer.minFilter = THREE.NearestFilter;
     bayer.magFilter = THREE.NearestFilter;
     bayer.wrapS = THREE.RepeatWrapping;
@@ -57,7 +58,8 @@ let BleepyBlocksShader = {
     init: function(material) {
         material.uniforms.texRepeat = { value: material.map.repeat }
         material.uniforms.texOffset = { value: material.map.offset }
-        material.uniforms.texFlipY = { value: material.map.flipY ? 1 : 0 }
+        // we seem to want to flip the flipY
+        material.uniforms.texFlipY = { value: material.map.flipY ? 0 : 1 }
         material.uniforms.iChannel0.value = bayerTex
     },
     updateUniforms: function(time, material) {

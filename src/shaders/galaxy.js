@@ -2,6 +2,7 @@
 import shaderToyMain from "./shaderToyMain"
 import shaderToyUniformObj from "./shaderToyUniformObj"
 import shaderToyUniform_paras from "./shaderToyUniform_paras"
+import smallNoise from '../assets/small-noise.png'
 
 const glsl = String.raw
 
@@ -11,7 +12,7 @@ const uniforms = Object.assign({}, shaderToyUniformObj, {
 
 const loader = new THREE.TextureLoader()
 var noiseTex = null
-loader.load('https://resources.realitymedia.digital/data/images/small-noise.png', (noise) => {
+loader.load(smallNoise, (noise) => {
     noise.minFilter = THREE.NearestFilter;
     noise.magFilter = THREE.NearestFilter;
     noise.wrapS = THREE.RepeatWrapping;
@@ -119,7 +120,8 @@ let GalaxyShader = {
     init: function(material) {
         material.uniforms.texRepeat = { value: material.map.repeat }
         material.uniforms.texOffset = { value: material.map.offset }
-        material.uniforms.texFlipY = { value: material.map.flipY ? 1 : 0 }
+        // we seem to want to flip the flipY
+        material.uniforms.texFlipY = { value: material.map.flipY ? 0 : 1 }
         material.uniforms.iChannel0.value = noiseTex
         material.userData.timeOffset = Math.random() * 100000
     },

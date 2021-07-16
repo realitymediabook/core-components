@@ -244,7 +244,9 @@ let Marble1Shader = {
     init: function(material) {
         material.uniforms.texRepeat = { value: material.map.repeat }
         material.uniforms.texOffset = { value: material.map.offset }
-        material.uniforms.mb_invert = { value: material.map.flipY ? !state.invert : state.invert }
+
+        // we seem to want to flip the flipY
+        material.uniforms.mb_invert = { value: material.map.flipY ? state.invert : !state.invert }
 
         // lets add a bit of randomness to the input so multiple instances are different
         let rx = Math.random()

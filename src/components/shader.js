@@ -7,11 +7,12 @@ import { BleepyBlocksShader } from '../shaders/bleepy-blocks-shader.js'
 import { NoiseShader } from '../shaders/noise.js'
 import { LiquidMarbleShader } from '../shaders/liquid-marble.js'
 import MaterialModifier from '../utils/MaterialModifier.js'
-import { THREE } from 'ethereal'
+//import { THREE } from 'ethereal'
 import { GalaxyShader } from '../shaders/galaxy.js'
 import { LaceTunnelShader } from '../shaders/lace-tunnel.js'
 import { MistShader } from '../shaders/mist.js'
 import { Marble1Shader } from '../shaders/marble1.js'
+import { NotFoundShader } from '../shaders/not-found.js'
 
 const vec = new THREE.Vector3()
 const forward = new THREE.Vector3(0, 0, 1)
@@ -27,9 +28,9 @@ AFRAME.registerComponent('shader', {
       var shaderDef;
 
       switch (this.data.name) {
-        case "noise":
-            shaderDef = NoiseShader
-            break;
+        // case "noise":
+        //     shaderDef = NoiseShader
+        //     break;
 
         case "liquidmarble":
             shaderDef = LiquidMarbleShader
@@ -55,10 +56,10 @@ AFRAME.registerComponent('shader', {
             shaderDef = Marble1Shader
             break;
 
-            default:
+        default:
             // an unknown name was passed in
             console.warn("unknown name '" + this.data.name + "' passed to shader component")
-            return 
+            shaderDef = NotFoundShader
             break;
       }
 
