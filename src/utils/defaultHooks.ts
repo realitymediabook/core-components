@@ -1,18 +1,12 @@
-
-export default {
-
+let DefaultHooks = {
     vertexHooks: {
-
         uniforms: 'insertbefore:#include <common>\n',
         functions: 'insertafter:#include <clipping_planes_pars_vertex>\n',
         preTransform: 'insertafter:#include <begin_vertex>\n',
         postTransform: 'insertafter:#include <project_vertex>\n',
         preNormal: 'insertafter:#include <beginnormal_vertex>\n'
-
     },
-
     fragmentHooks: {
-
         uniforms: 'insertbefore:#include <common>\n',
         functions: 'insertafter:#include <clipping_planes_pars_fragment>\n',
         preFragColor: 'insertbefore:gl_FragColor = vec4( outgoingLight, diffuseColor.a );\n',
@@ -20,5 +14,6 @@ export default {
         postMap: 'insertafter:#include <map_fragment>\n',
         replaceMap: 'replace:#include <map_fragment>\n'
     }
-
 }
+
+export default DefaultHooks

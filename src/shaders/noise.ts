@@ -3,10 +3,15 @@
 import shaderToyMain from "./shaderToyMain"
 import shaderToyUniformObj from "./shaderToyUniformObj"
 import shaderToyUniform_paras from "./shaderToyUniform_paras"
+import { ShaderExtension, ExtendedMaterial } from '../utils/MaterialModifier';
 
 const glsl = String.raw
 
-let NoiseShader = {
+interface ExtraBits {
+    map: THREE.Texture
+}
+
+let NoiseShader: ShaderExtension = {
     uniforms: Object.assign({}, shaderToyUniformObj),
     vertexShader: {},
 
@@ -49,11 +54,13 @@ let NoiseShader = {
             `,
     replaceMap: shaderToyMain
     },
-    init: function(material) {
+    init: function(material: THREE.Material & ExtendedMaterial) {
+        let mat = (material as THREE.Material & ExtendedMaterial & ExtraBits)
+
         // we seem to want to flip the flipY
-        material.uniforms.texFlipY = { value: material.map.flipY ? 0 : 1 }
+        material.uniforms.texFlipY = { value: mat.map.flipY ? 0 : 1 }
     },
-    updateUniforms: function(time, material) {
+    updateUniforms: function(time: number, material: THREE.Material & ExtendedMaterial) {
         material.uniforms.iTime.value = time * 0.001
     }
 }

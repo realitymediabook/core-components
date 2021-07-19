@@ -4,8 +4,13 @@ import shaderToyUniformObj from "./shaderToyUniformObj"
 import shaderToyUniform_paras from "./shaderToyUniform_paras"
 import smallNoise from '../assets/small-noise.png'
 import notFound from '../assets/badShader.jpg'
+import { ShaderExtension, ExtendedMaterial } from '../utils/MaterialModifier';
 
 const glsl = String.raw
+
+interface ExtraBits {
+    map: THREE.Texture
+}
 
 const uniforms = Object.assign({}, shaderToyUniformObj, {
     iChannel0: { value: null },
@@ -13,7 +18,7 @@ const uniforms = Object.assign({}, shaderToyUniformObj, {
 })
 
 const loader = new THREE.TextureLoader()
-var noiseTex = null
+var noiseTex: THREE.Texture
 loader.load(smallNoise, (noise) => {
     noise.minFilter = THREE.NearestFilter;
     noise.magFilter = THREE.NearestFilter;
@@ -21,7 +26,7 @@ loader.load(smallNoise, (noise) => {
     noise.wrapT = THREE.RepeatWrapping;
     noiseTex = noise
 })
-var notFoundTex = null
+var notFoundTex: THREE.Texture
 loader.load(notFound, (noise) => {
     noise.minFilter = THREE.NearestFilter;
     noise.magFilter = THREE.NearestFilter;
@@ -30,7 +35,7 @@ loader.load(notFound, (noise) => {
     notFoundTex = noise
 })
 
-let NotFoundShader = {
+let NotFoundShader: ShaderExtension = {
     uniforms: uniforms,
     vertexShader: {},
 
@@ -61,16 +66,18 @@ let NotFoundShader = {
         `,
     replaceMap: shaderToyMain
     },
-    init: function(material) {
-        material.uniforms.texRepeat = { value: material.map.repeat }
-        material.uniforms.texOffset = { value: material.map.offset }
+    init: function(material: THREE.Material & ExtendedMaterial) {
+        let mat = (material as THREE.Material & ExtendedMaterial & ExtraBits)
+
+        material.uniforms.texRepeat = { value: mat.map.repeat }
+        material.uniforms.texOffset = { value: mat.map.offset }
         // we seem to want to flip the flipY
-        material.uniforms.texFlipY = { value: material.map.flipY ? 0 : 1 }
+        material.uniforms.texFlipY = { value: mat.map.flipY ? 0 : 1 }
         material.uniforms.iChannel0.value = noiseTex
         material.uniforms.iChannel1.value = notFoundTex
         material.userData.timeOffset = Math.random() * 100000
     },
-    updateUniforms: function(time, material) {
+    updateUniforms: function(time: number, material: THREE.Material & ExtendedMaterial) {
         material.uniforms.iTime.value = (time * 0.001) + material.userData.timeOffset
         material.uniforms.iChannel0.value = noiseTex
         material.uniforms.iChannel1.value = notFoundTex
