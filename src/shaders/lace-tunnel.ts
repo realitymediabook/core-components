@@ -208,7 +208,7 @@ let LaceTunnelShader: ShaderExtension = {
         // we seem to want to flip the flipY
         material.uniforms.texFlipY = { value: mat.map.flipY ? 0 : 1 }
         material.uniforms.iChannel0.value = noiseTex
-        material.userData.timeOffset = Math.random() * 10
+        material.userData.timeOffset = (Math.random() + 0.5) * 10
     },
     updateUniforms: function(time: number, material: THREE.Material & ExtendedMaterial) {
         material.uniforms.iTime.value = (time * 0.001) + material.userData.timeOffset

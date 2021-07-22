@@ -17,7 +17,27 @@ import * as htmlComponents from "https://resources.realitymedia.digital/vue-apps
 // // scriptPromise = scriptPromise.then(module => {
 // //     return module
 // // });
+/**
+ * Modified from https://github.com/mozilla/hubs/blob/master/src/components/fader.js
+ * to include adjustable duration and converted from component to system
+ */
 
+ AFRAME.registerSystem('html-script', {  
+    init() {
+        this.systemTick = htmlComponents["systemTick"];
+        this.initializeEthereal = htmlComponents["initializeEthereal"]
+        if (!this.systemTick || !this.initializeEthereal) {
+            console.error("error in html-script system: htmlComponents has no systemTick and/or initializeEthereal methods")
+        } else {
+            this.initializeEthereal()
+        }
+    },
+  
+    tick(t, dt) {
+        this.systemTick(t, dt)
+    },
+  })
+  
 
 AFRAME.registerComponent('html-script', {
     schema: {

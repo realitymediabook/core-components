@@ -81,7 +81,7 @@ let MistShader: ShaderExtension = {
         material.uniforms.texOffset = { value: mat.map.offset }
         // we seem to want to flip the flipY
         material.uniforms.texFlipY = { value: mat.map.flipY ? 0 : 1 }
-        material.userData.timeOffset = Math.random() * 10
+        material.userData.timeOffset = (Math.random()+0.5) * 10
     },
     updateUniforms: function(time: number, material: THREE.Material & ExtendedMaterial) {
         material.uniforms.iTime.value = (time * 0.0012) + material.userData.timeOffset

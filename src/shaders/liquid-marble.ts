@@ -104,7 +104,7 @@ let LiquidMarbleShader: ShaderExtension = {
         material.uniforms.texOffset = { value: new THREE.Vector2(mat.map.offset.x+ Math.random(), mat.map.offset.x+ Math.random()) }
         // we seem to want to flip the flipY
         material.uniforms.texFlipY = { value: mat.map.flipY ? 0 : 1 }
-        material.userData.timeOffset = Math.random() * 10
+        material.userData.timeOffset = (Math.random() + 0.5) * 10
     },
     updateUniforms: function(time: number, material: THREE.Material & ExtendedMaterial) {
         material.uniforms.iTime.value = (time * 0.001) + material.userData.timeOffset
