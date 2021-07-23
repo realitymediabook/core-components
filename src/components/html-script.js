@@ -95,7 +95,7 @@ AFRAME.registerComponent('html-script', {
             const scriptEl = document.createElement('a-entity')
             this.simpleContainer = scriptEl
             this.simpleContainer.object3D.matrixAutoUpdate = true
-            this.simpleContainer.object3D.add(this.script.webLayer3D)
+            this.simpleContainer.setObject3D("weblayer3d", this.script.webLayer3D)
 
             // lets figure out the scale, but scaling to fill the a 1x1m square, that has also
             // potentially been scaled by the parents parent node. If we scale the entity in spoke,
