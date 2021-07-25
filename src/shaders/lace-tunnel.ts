@@ -3,15 +3,20 @@ import shaderToyMain from "./shaderToyMain"
 import shaderToyUniformObj from "./shaderToyUniformObj"
 import shaderToyUniform_paras from "./shaderToyUniform_paras"
 import smallNoise from '../assets/small-noise.png'
+import { ShaderExtension, ExtendedMaterial } from '../utils/MaterialModifier';
 
 const glsl = String.raw
+
+interface ExtraBits {
+    map: THREE.Texture
+}
 
 const uniforms = Object.assign({}, shaderToyUniformObj, {
     iChannel0: { value: null }
 })
 
 const loader = new THREE.TextureLoader()
-var noiseTex = null
+var noiseTex: THREE.Texture;
 loader.load(smallNoise, (noise) => {
     noise.minFilter = THREE.NearestFilter;
     noise.magFilter = THREE.NearestFilter;
@@ -20,7 +25,7 @@ loader.load(smallNoise, (noise) => {
     noiseTex = noise
 })
 
-let LaceTunnelShader = {
+let LaceTunnelShader: ShaderExtension = {
     uniforms: uniforms,
     vertexShader: {},
 
@@ -195,15 +200,17 @@ let LaceTunnelShader = {
        `,
     replaceMap: shaderToyMain
     },
-    init: function(material) {
-        material.uniforms.texRepeat = { value: material.map.repeat }
-        material.uniforms.texOffset = { value: material.map.offset }
+    init: function(material: THREE.Material & ExtendedMaterial) {
+        let mat = (material as THREE.Material & ExtendedMaterial & ExtraBits)
+
+        material.uniforms.texRepeat = { value: mat.map.repeat }
+        material.uniforms.texOffset = { value: mat.map.offset }
         // we seem to want to flip the flipY
-        material.uniforms.texFlipY = { value: material.map.flipY ? 0 : 1 }
+        material.uniforms.texFlipY = { value: mat.map.flipY ? 0 : 1 }
         material.uniforms.iChannel0.value = noiseTex
-        material.userData.timeOffset = Math.random() * 10
+        material.userData.timeOffset = (Math.random() + 0.5) * 10
     },
-    updateUniforms: function(time, material) {
+    updateUniforms: function(time: number, material: THREE.Material & ExtendedMaterial) {
         material.uniforms.iTime.value = (time * 0.001) + material.userData.timeOffset
         material.uniforms.iChannel0.value = noiseTex
     }

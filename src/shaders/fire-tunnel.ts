@@ -1,34 +1,42 @@
 // simple shader taken from https://www.shadertoy.com/view/MdfGRX
 
+import { ShaderExtension, ExtendedMaterial } from '../utils/MaterialModifier';
 
 import shaderToyMain from "./shaderToyMain"
 import shaderToyUniformObj from "./shaderToyUniformObj"
 import shaderToyUniform_paras from "./shaderToyUniform_paras"
-import smallNoise from '../assets/small-noise.png'
+import smallNoise from '../assets/noise-256.png'
 
 const glsl = String.raw
 
+interface ExtraBits {
+    map: THREE.Texture
+}
+
 const uniforms = Object.assign({}, shaderToyUniformObj, {
-    iChannel0: { value: null }
+    iChannel0: { value: null },
+    iChannelResolution: { value: [ new THREE.Vector3(1,1,1), new THREE.Vector3(1,1,1), new THREE.Vector3(1,1,1), new THREE.Vector3(1,1,1)] }
 })
 
 const loader = new THREE.TextureLoader()
-var noiseTex = null
+var noiseTex: THREE.Texture;
 loader.load(smallNoise, (noise) => {
     noise.minFilter = THREE.NearestFilter;
     noise.magFilter = THREE.NearestFilter;
     noise.wrapS = THREE.RepeatWrapping;
     noise.wrapT = THREE.RepeatWrapping;
     noiseTex = noise
+    console.log( "noise texture size: ", noise.image.width,noise.image.height );
 })
 
-let FireTunnelShader = {
+let FireTunnelShader: ShaderExtension = {
     uniforms: uniforms,
     vertexShader: {},
 
     fragmentShader: {
         uniforms: shaderToyUniform_paras + glsl`
       uniform sampler2D iChannel0;
+      uniform vec3 iChannelResolution[4];
         `,
         functions: glsl`
         // Created by inigo quilez - iq/2013
@@ -111,8 +119,8 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
     vec2 p = -1.0 + 2.0*q;
     p.x *= iResolution.x/ iResolution.y;
 	
-    vec2 mo = iMouse.xy / iResolution.xy;
-    if( iMouse.w<=0.00001 ) mo=vec2(0.0);
+    vec2 mo = vec2(0.5,0.5); //iMouse.xy / iResolution.xy;
+    //if( iMouse.w<=0.00001 ) mo=vec2(0.0);
 	
     // camera
     vec3 ro = 4.0*normalize(vec3(cos(3.0*mo.x), 1.4 - 1.0*(mo.y-.1), sin(3.0*mo.x)));
@@ -142,17 +150,21 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
        `,
     replaceMap: shaderToyMain
     },
-    init: function(material) {
-        material.uniforms.texRepeat = { value: material.map.repeat }
-        material.uniforms.texOffset = { value: material.map.offset }
+    init: function(material: THREE.Material & ExtendedMaterial) {
+        let mat = (material as THREE.Material & ExtendedMaterial & ExtraBits)
+
+        material.uniforms.texRepeat = { value: mat.map.repeat }
+        material.uniforms.texOffset = { value: mat.map.offset }
         // we seem to want to flip the flipY
-        material.uniforms.texFlipY = { value: material.map.flipY ? 0 : 1 }
+        material.uniforms.texFlipY = { value: mat.map.flipY ? 0 : 1 }
         material.uniforms.iChannel0.value = noiseTex
-        material.userData.timeOffset = Math.random() * 100000
+        material.userData.timeOffset = (Math.random() + 0.5) * 100000
     },
-    updateUniforms: function(time, material) {
+    updateUniforms: function(time: number, material: THREE.Material & ExtendedMaterial) {
         material.uniforms.iTime.value = (time * 0.001) + material.userData.timeOffset
         material.uniforms.iChannel0.value = noiseTex
+        material.uniforms.iChannelResolution.value[0].x = noiseTex.image.width
+        material.uniforms.iChannelResolution.value[0].y = noiseTex.image.height
     }
 }
 

@@ -2,10 +2,15 @@
 import shaderToyMain from "./shaderToyMain"
 import shaderToyUniformObj from "./shaderToyUniformObj"
 import shaderToyUniform_paras from "./shaderToyUniform_paras"
+import { ShaderExtension, ExtendedMaterial } from '../utils/MaterialModifier';
+
+interface ExtraBits {
+    map: THREE.Texture
+}
 
 const glsl = String.raw
 
-let LiquidMarbleShader = {
+let LiquidMarbleShader: ShaderExtension = {
     uniforms: Object.assign({}, shaderToyUniformObj),
     vertexShader: {},
 
@@ -91,14 +96,17 @@ let LiquidMarbleShader = {
       `,
     replaceMap: shaderToyMain
     },
-    init: function(material) {
-        material.uniforms.texRepeat = { value: material.map.repeat }
-        material.uniforms.texOffset = { value: new THREE.Vector2(material.map.offset.x+ Math.random(), material.map.offset.x+ Math.random()) }
+
+    init: function(material: THREE.Material & ExtendedMaterial) {
+        let mat = (material as THREE.Material & ExtendedMaterial & ExtraBits)
+
+        material.uniforms.texRepeat = { value: mat.map.repeat }
+        material.uniforms.texOffset = { value: new THREE.Vector2(mat.map.offset.x+ Math.random(), mat.map.offset.x+ Math.random()) }
         // we seem to want to flip the flipY
-        material.uniforms.texFlipY = { value: material.map.flipY ? 0 : 1 }
-        material.userData.timeOffset = Math.random() * 10
+        material.uniforms.texFlipY = { value: mat.map.flipY ? 0 : 1 }
+        material.userData.timeOffset = (Math.random() + 0.5) * 10
     },
-    updateUniforms: function(time, material) {
+    updateUniforms: function(time: number, material: THREE.Material & ExtendedMaterial) {
         material.uniforms.iTime.value = (time * 0.001) + material.userData.timeOffset
     }
 }

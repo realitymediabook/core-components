@@ -1,9 +1,11 @@
 // from https://www.shadertoy.com/view/XdsBDB
-import shaderToyMain from "./shaderToyMain"
-import shaderToyUniformObj from "./shaderToyUniformObj"
-import shaderToyUniform_paras from "./shaderToyUniform_paras"
+import { ShaderExtension, ExtendedMaterial } from '../utils/MaterialModifier';
 
 const glsl = String.raw
+
+interface ExtraBits {
+    map: THREE.Texture
+}
 
 const state = {
     animate: false,
@@ -34,7 +36,7 @@ const state = {
     offsetY: 0,
 };
 
-let Marble1Shader = {
+let Marble1Shader: ShaderExtension = {
     uniforms: {
         mb_animate: { value: state.animate },
         mb_color1: { value: state.color1.map(c => c / 255) },
@@ -241,19 +243,21 @@ let Marble1Shader = {
         diffuseColor *= marbleColor4;
     `
     },
-    init: function(material) {
-        material.uniforms.texRepeat = { value: material.map.repeat }
-        material.uniforms.texOffset = { value: material.map.offset }
+    init: function(material: THREE.Material & ExtendedMaterial) {
+        let mat = (material as THREE.Material & ExtendedMaterial & ExtraBits)
+
+        material.uniforms.texRepeat = { value: mat.map.repeat }
+        material.uniforms.texOffset = { value: mat.map.offset }
 
         // we seem to want to flip the flipY
-        material.uniforms.mb_invert = { value: material.map.flipY ? state.invert : !state.invert }
+        material.uniforms.mb_invert = { value: mat.map.flipY ? state.invert : !state.invert }
 
         // lets add a bit of randomness to the input so multiple instances are different
         let rx = Math.random()
         material.uniforms.mb_offsetA = { value: new THREE.Vector2( state.offsetAX + Math.random(), state.offsetAY + Math.random()) }
         material.uniforms.mb_offsetB = { value: new THREE.Vector2( state.offsetBX + Math.random(), state.offsetBY + Math.random()) }
     },
-    updateUniforms: function(time, material) {
+    updateUniforms: function(time: number, material: THREE.Material & ExtendedMaterial) {
         material.uniforms.mb_time.value = time * 0.001
     }
 }

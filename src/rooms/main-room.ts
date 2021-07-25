@@ -2,7 +2,7 @@ import '../systems/fader-plus.js'
 import '../components/portal.js'
 import '../components/immersive-360.js'
 import '../components/parallax.js'
-import '../components/shader.js'
+import '../components/shader.ts'
 import '../components/html-script.js'
 import '../components/region-hider.js'
 

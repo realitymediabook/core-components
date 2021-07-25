@@ -4,15 +4,20 @@ import shaderToyMain from "./shaderToyMain"
 import shaderToyUniformObj from "./shaderToyUniformObj"
 import shaderToyUniform_paras from "./shaderToyUniform_paras"
 import bayerImage from '../assets/bayer.png'
+import { ShaderExtension, ExtendedMaterial } from '../utils/MaterialModifier';
 
 const glsl = String.raw
+
+interface ExtraBits {
+    map: THREE.Texture
+}
 
 const uniforms = Object.assign({}, shaderToyUniformObj, {
     iChannel0: { value: null }
 })
 
 const loader = new THREE.TextureLoader()
-var bayerTex = null
+var bayerTex: THREE.Texture;
 loader.load(bayerImage, (bayer) => {
     bayer.minFilter = THREE.NearestFilter;
     bayer.magFilter = THREE.NearestFilter;
@@ -20,8 +25,8 @@ loader.load(bayerImage, (bayer) => {
     bayer.wrapT = THREE.RepeatWrapping;
     bayerTex = bayer
 })
-    
-let BleepyBlocksShader = {
+
+let BleepyBlocksShader: ShaderExtension = {
   uniforms: uniforms,
 
   vertexShader: {},
@@ -55,14 +60,16 @@ let BleepyBlocksShader = {
       `,
         replaceMap: shaderToyMain
     },
-    init: function(material) {
-        material.uniforms.texRepeat = { value: material.map.repeat }
-        material.uniforms.texOffset = { value: material.map.offset }
+    init: function(material: THREE.Material & ExtendedMaterial) {
+        let mat = (material as THREE.Material & ExtendedMaterial & ExtraBits)
+
+        material.uniforms.texRepeat = { value: mat.map.repeat }
+        material.uniforms.texOffset = { value: mat.map.offset }
         // we seem to want to flip the flipY
-        material.uniforms.texFlipY = { value: material.map.flipY ? 0 : 1 }
+        material.uniforms.texFlipY = { value: mat.map.flipY ? 0 : 1 }
         material.uniforms.iChannel0.value = bayerTex
     },
-    updateUniforms: function(time, material) {
+    updateUniforms: function(time: number, material: THREE.Material & ExtendedMaterial) {
         material.uniforms.iTime.value = time * 0.001
         material.uniforms.iChannel0.value = bayerTex
     }

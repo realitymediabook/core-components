@@ -5,10 +5,6 @@
  *
  */
 
-//import {WebLayer3D, toDOM, THREE} from '/node_modules/ethereal/dist/ethereal.es.js'
-
-// const errorHTML = '<div id="hello" xr-width="2" style="width: 200px; height: 30px; background: rgba(1, 0, 0, 0.6); position:absolute">No Text Provided</div>'
-
 import * as htmlComponents from "https://resources.realitymedia.digital/vue-apps/dist/hubs.js";
 
 // var htmlComponents;
@@ -21,7 +17,27 @@ import * as htmlComponents from "https://resources.realitymedia.digital/vue-apps
 // // scriptPromise = scriptPromise.then(module => {
 // //     return module
 // // });
+/**
+ * Modified from https://github.com/mozilla/hubs/blob/master/src/components/fader.js
+ * to include adjustable duration and converted from component to system
+ */
 
+ AFRAME.registerSystem('html-script', {  
+    init() {
+        this.systemTick = htmlComponents["systemTick"];
+        this.initializeEthereal = htmlComponents["initializeEthereal"]
+        if (!this.systemTick || !this.initializeEthereal) {
+            console.error("error in html-script system: htmlComponents has no systemTick and/or initializeEthereal methods")
+        } else {
+            this.initializeEthereal()
+        }
+    },
+  
+    tick(t, dt) {
+        this.systemTick(t, dt)
+    },
+  })
+  
 
 AFRAME.registerComponent('html-script', {
     schema: {
@@ -33,7 +49,6 @@ AFRAME.registerComponent('html-script', {
         this.fullName = this.data.name;
         this.parseNodeName();
         this.createScript();
-        this.updateTime = 100
     },
 
     update: function () {
@@ -80,9 +95,7 @@ AFRAME.registerComponent('html-script', {
             const scriptEl = document.createElement('a-entity')
             this.simpleContainer = scriptEl
             this.simpleContainer.object3D.matrixAutoUpdate = true
-            this.simpleContainer.object3D.add(this.script.webLayer3D)
-            // this.script.webLayer3D._webLayer._hashingCanvas.width = 20
-            // this.script.webLayer3D._webLayer._hashingCanvas.height = 20
+            this.simpleContainer.setObject3D("weblayer3d", this.script.webLayer3D)
 
             // lets figure out the scale, but scaling to fill the a 1x1m square, that has also
             // potentially been scaled by the parents parent node. If we scale the entity in spoke,
@@ -100,38 +113,25 @@ AFRAME.registerComponent('html-script', {
             parent2.scale.z = 1
 
             if (width && width > 0 && height && height > 0) {
-              //  setTimeout(() => {
-                    // need to delay this calculation
-
-                    // var bbox = new THREE.Box3().setFromObject(this.script.webLayer3D);
-                    // var wsize = bbox.max.x - bbox.min.x
-                    // var hsize = bbox.max.y - bbox.min.y
-                    const {width: wsize, height: hsize} = this.script.getSize()
-                    var scale = Math.min(width / wsize, height / hsize)
-                    this.simpleContainer.setAttribute("scale", { x: scale, y: scale, z: scale});
-             //   }, 1)
+                const {width: wsize, height: hsize} = this.script.getSize()
+                var scale = Math.min(width / wsize, height / hsize)
+                this.simpleContainer.setAttribute("scale", { x: scale, y: scale, z: scale});
             }
 
             // there will be one element already, the cube we created in blender
             // and attached this component to, so remove it if it is there.
-            this.el.object3D.children.pop()
+            // this.el.object3D.children.pop()
+            for (const c of this.el.object3D.children) {
+                c.visible = false;
+            }
 
             // make sure "isStatic" is correct;  can't be static if either interactive or networked
             if (this.script.isStatic && (this.script.isInteractive || this.script.isNetworked)) {
                 this.script.isStatic = false;
             }
-            
-            
+                        
             // add in our container
             this.el.appendChild(this.simpleContainer)
-
-            // if (!this.script.isStatic) {
-            //     setInterval(() => {
-            //         // update on a regular basis
-            //       //  this.script.webLayer3D.refresh(true)
-            //         this.script.webLayer3D.update(true)
-            //     }, 50)
-            // }
 
             if (this.script.isInteractive) {
                 // make the html object clickable
@@ -266,16 +266,7 @@ AFRAME.registerComponent('html-script', {
 
     // handle "interact" events for clickable entities
     clicked: function(evt) {
-        this.script.clicked(evt)
-
-        // const obj = evt.object3D
-        // this.raycaster.ray.set(obj.position, this.script.webLayer3D.getWorldDirection(new THREE.Vector3()).negate())
-        // const hit = this.script.webLayer3D.hitTest(this.raycaster.ray)
-        // if (hit) {
-        //   hit.target.click()
-        //   hit.target.focus()
-        //   console.log('hit', hit.target, hit.layer)
-        // }   
+        this.script.clicked(evt) 
     },
   
     // methods that will be passed to the html object so they can update networked data
@@ -368,17 +359,7 @@ AFRAME.registerComponent('html-script', {
             }
         }
 
-        //if (this.script.isStatic && this.updateTime-- > 0) {
-        if (this.script.isStatic && this.updateTime < time) {
-            this.script.webLayer3D.update(true)
-            // wait a bit and do it again.  May get rid of this some day, we'll see
-            this.updateTime = Math.random() * 2000 + 1000;
-        }
-
-        if (!this.script.isStatic) {
-            this.updateTime = time
-            this.script.webLayer3D.update(true)
-        }
+        this.script.tick(time)
     },
   
   parseNodeName: function () {
@@ -420,8 +401,9 @@ AFRAME.registerComponent('html-script', {
         }
         this.script = initScript()
         if (this.script){
-            this.script.webLayer3D.refresh(true)
-            this.script.webLayer3D.update(true)
+            this.script.needsUpdate = true
+            // this.script.webLayer3D.refresh(true)
+            // this.script.webLayer3D.update(true)
         } else {
             console.warn("'html-script' component failed to initialize script for " + this.componentName);
         }
