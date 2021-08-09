@@ -58,14 +58,16 @@ AFRAME.registerSystem('portal', {
   },
   getRoomURL: async function (number) {
       this.waitForFetch()
-      return this.roomData.rooms.length > number ? "https://xr.realitymedia.digital/" + this.roomData.rooms[number] : null;
+      //return this.roomData.rooms.length > number ? "https://xr.realitymedia.digital/" + this.roomData.rooms[number] : null;
+      let url = window.SSO.userInfo.rooms.length > number ? "https://xr.realitymedia.digital/" + window.SSO.userInfo.rooms[number] : null;
+      return url
   },
   getCubeMap: async function (number) {
       this.waitForFetch()
       return this.roomData.cubemaps.length > number ? this.roomData.cubemaps[number] : null;
   },
   waitForFetch: function () {
-     if (this.roomData) return
+     if (this.roomData && window.SSO.userInfo) return
      setTimeout(this.waitForFetch, 100); // try again in 100 milliseconds
   },
   teleportTo: async function (object) {
