@@ -19,6 +19,7 @@ import vertexShader from '../shaders/portal.vert.js'
 import fragmentShader from '../shaders/portal.frag.js'
 import snoise from '../shaders/snoise.js'
 import { showRegionForObject, hiderRegionForObject } from './region-hider.js'
+import { findAncestorWithComponent } from '../utils/scene-graph'
 
 const worldPos = new THREE.Vector3()
 const worldCameraPos = new THREE.Vector3()
@@ -26,6 +27,17 @@ const worldDir = new THREE.Vector3()
 const worldQuat = new THREE.Quaternion()
 const mat4 = new THREE.Matrix4()
 
+function mapMaterials(object3D, fn) {
+    let mesh = object3D 
+    if (!mesh.material) return;
+  
+    if (Array.isArray(mesh.material)) {
+      return mesh.material.map(fn);
+    } else {
+      return fn(mesh.material);
+    }
+}
+  
 AFRAME.registerSystem('portal', {
   dependencies: ['fader-plus'],
   init: function () {
@@ -58,14 +70,16 @@ AFRAME.registerSystem('portal', {
   },
   getRoomURL: async function (number) {
       this.waitForFetch()
-      return this.roomData.rooms.length > number ? "https://xr.realitymedia.digital/" + this.roomData.rooms[number] : null;
+      //return this.roomData.rooms.length > number ? "https://xr.realitymedia.digital/" + this.roomData.rooms[number] : null;
+      let url = window.SSO.userInfo.rooms.length > number ? "https://xr.realitymedia.digital/" + window.SSO.userInfo.rooms[number] : null;
+      return url
   },
   getCubeMap: async function (number) {
       this.waitForFetch()
       return this.roomData.cubemaps.length > number ? this.roomData.cubemaps[number] : null;
   },
   waitForFetch: function () {
-     if (this.roomData) return
+     if (this.roomData && window.SSO.userInfo) return
      setTimeout(this.waitForFetch, 100); // try again in 100 milliseconds
   },
   teleportTo: async function (object) {
@@ -87,14 +101,25 @@ AFRAME.registerSystem('portal', {
 
 AFRAME.registerComponent('portal', {
   schema: {
+    portalType: { default: "" },
+    portalTarget: { default: "" },
     color: { type: 'color', default: null },
+    materialTarget: { type: 'string', default: null }
   },
   init: async function () {
-    this.system = APP.scene.systems.portal // A-Frame is supposed to do this by default but doesn't?
+    this.system = window.APP.scene.systems.portal // A-Frame is supposed to do this by default but doesn't?
 
-    // parse the name to get portal type, target, and color
-    this.parseNodeName()
+    if (this.data.portalType.length > 0 ) {
+        this.setPortalInfo(this.data.portalType, this.data.portalTarget, this.data.color)
+    } else {
+        this.portalType = 0
+    }
 
+    if (this.portalType == 0) {
+        // parse the name to get portal type, target, and color
+        this.parseNodeName()
+    }
+    
     this.material = new THREE.ShaderMaterial({
       transparent: true,
       side: THREE.DoubleSide,
@@ -112,8 +137,9 @@ AFRAME.registerComponent('portal', {
     })
 
     // Assume that the object has a plane geometry
-    const mesh = this.el.getOrCreateObject3D('mesh')
-    mesh.material = this.material
+    //const mesh = this.el.getOrCreateObject3D('mesh')
+    //mesh.material = this.material
+    this.replaceMaterial(this.material)
 
     // get the other before continuing
     this.other = await this.getOther()
@@ -145,30 +171,72 @@ AFRAME.registerComponent('portal', {
         dur: 700,
         easing: 'easeInOutCubic',
     })
-    this.el.addEventListener('animationbegin', () => (this.el.object3D.visible = true))
-    this.el.addEventListener('animationcomplete__portal', () => (this.el.object3D.visible = !this.isClosed()))
+    // this.el.addEventListener('animationbegin', () => (this.el.object3D.visible = true))
+    // this.el.addEventListener('animationcomplete__portal', () => (this.el.object3D.visible = !this.isClosed()))
 
     // going to want to try and make the object this portal is on clickable
     this.el.setAttribute('is-remote-hover-target','')
     this.el.setAttribute('tags', {singleActionButton: true})
-    this.el.setAttribute('class', "interactable")
+    //this.el.setAttribute('class', "interactable")
     // orward the 'interact' events to our portal movement 
-    this.followPortal = this.followPortal.bind(this)
-    this.el.object3D.addEventListener('interact', this.followPortal)
+    //this.followPortal = this.followPortal.bind(this)
+    //this.el.object3D.addEventListener('interact', this.followPortal)
 
     this.el.setAttribute('proximity-events', { radius: 5 })
     this.el.addEventListener('proximityenter', () => this.open())
     this.el.addEventListener('proximityleave', () => this.close())
   },
 
-  followPortal: function() {
-    if (this.portalType == 1) {
-        console.log("set window.location.href to " + this.other)
-        window.location.href = this.other
-      } else if (this.portalType == 2) {
-        this.system.teleportTo(this.other.object3D)
+  replaceMaterial: function (newMaterial) {
+    let target = this.data.materialTarget
+    if (target && target.length == 0) {target=null}
+    
+    let traverse = (object) => {
+      let mesh = object
+      if (mesh.material) {
+          mapMaterials(mesh, (material) => {         
+              if (!target || material.name === target) {
+                  mesh.material = newMaterial
+              }
+          })
       }
+      const children = object.children;
+      for (let i = 0; i < children.length; i++) {
+          traverse(children[i]);
+      }
+    }
+
+    let replaceMaterials = () => {
+    // mesh would contain the object that is, or contains, the meshes
+    var mesh = this.el.object3DMap.mesh
+    if (!mesh) {
+        // if no mesh, we'll search through all of the children.  This would
+        // happen if we dropped the component on a glb in spoke
+        mesh = this.el.object3D
+    }
+    traverse(mesh);
+    this.el.removeEventListener("model-loaded", initializer);
+    }
+
+    let root = findAncestorWithComponent(this.el, "gltf-model-plus")
+    let initializer = () =>{
+      if (this.el.components["media-loader"]) {
+          this.el.addEventListener("media-loaded", replaceMaterials)
+      } else {
+          replaceMaterials()
+      }
+    };
+    root.addEventListener("model-loaded", initializer);
   },
+
+//   followPortal: function() {
+//     if (this.portalType == 1) {
+//         console.log("set window.location.href to " + this.other)
+//         window.location.href = this.other
+//       } else if (this.portalType == 2) {
+//         this.system.teleportTo(this.other.object3D)
+//       }
+//   },
   tick: function (time) {
     this.material.uniforms.time.value = time / 1000
         
@@ -177,9 +245,12 @@ AFRAME.registerComponent('portal', {
       this.el.sceneEl.camera.getWorldPosition(worldCameraPos)
       const dist = worldCameraPos.distanceTo(worldPos)
 
-      if (this.portalType == 1 && dist < 0.5) {
-        //console.log("set window.location.href to " + this.other)
-        //window.location.href = this.other
+      if (this.portalType == 1 && dist < 1) {
+          if (!this.locationhref) {
+            console.log("set window.location.href to " + this.other)
+            this.locationhref = this.other
+            window.location.href = this.other
+          }
       } else if (this.portalType == 2 && dist < 1) {
         this.system.teleportTo(this.other.object3D)
       }
@@ -196,10 +267,10 @@ AFRAME.registerComponent('portal', {
         // now find the portal within the room.  The portals should come in pairs with the same portalTarget
         const portals = Array.from(document.querySelectorAll(`[portal]`))
         const other = portals.find((el) => el.components.portal.portalType == this.portalType &&
-                                           el.components.portal.portalTarget === this.portalTarget && el !== this.el)
+                                            el.components.portal.portalTarget === this.portalTarget && el !== this.el)
         if (other !== undefined) {
             // Case 1: The other portal already exists
-            resolve(other)
+            resolve(other);
             other.emit('pair', { other: this.el }) // Let the other know that we're ready
         } else {
             // Case 2: We couldn't find the other portal, wait for it to signal that it's ready
@@ -208,50 +279,54 @@ AFRAME.registerComponent('portal', {
     })
   },
 
-  parseNodeName: function () {
-    const nodeName = this.el.parentEl.parentEl.className
+    parseNodeName: function () {
+        const nodeName = this.el.parentEl.parentEl.className
 
-    // nodes should be named anything at the beginning with either 
-    // - "room_name_color"
-    // - "portal_N_color" 
-    // at the very end. Numbered portals should come in pairs.
-    const params = nodeName.match(/([A-Za-z]*)_([A-Za-z0-9]*)_([A-Za-z0-9]*)$/)
-    
-    // if pattern matches, we will have length of 4, first match is the portal type,
-    // second is the name or number, and last is the color
-    if (!params || params.length < 4) {
-        console.warn("portal node name not formed correctly: ", nodeName)
-        this.portalType = 0
-        this.portalTarget = null
-        this.color = "red" // default so the portal has a color to use
-        return;
-    } 
-    if (params[1] === "room") {
-        this.portalType = 1;
-        this.portalTarget = parseInt(params[2])
-    } else if (params[1] === "portal") {
-        this.portalType = 2;
-        this.portalTarget = params[2]
-    } else {
-        this.portalType = 0;
-        this.portalTarget = null
-    } 
-    this.color = new THREE.Color(params[3])
-  },
+        // nodes should be named anything at the beginning with either 
+        // - "room_name_color"
+        // - "portal_N_color" 
+        // at the very end. Numbered portals should come in pairs.
+        const params = nodeName.match(/([A-Za-z]*)_([A-Za-z0-9]*)_([A-Za-z0-9]*)$/)
+        
+        // if pattern matches, we will have length of 4, first match is the portal type,
+        // second is the name or number, and last is the color
+        if (!params || params.length < 4) {
+            console.warn("portal node name not formed correctly: ", nodeName)
+            this.portalType = 0
+            this.portalTarget = null
+            this.color = "red" // default so the portal has a color to use
+            return;
+        } 
+        this.setPortalInfo(params[1], params[2], params[3])
+    },
 
-  setRadius(val) {
-    this.el.setAttribute('animation__portal', {
-      from: this.material.uniforms.radius.value,
-      to: val,
-    })
-  },
-  open() {
-    this.setRadius(1)
-  },
-  close() {
-    this.setRadius(0)
-  },
-  isClosed() {
-    return this.material.uniforms.radius.value === 0
-  },
+    setPortalInfo: function(portalType, portalTarget, color) {
+        if (portalType === "room") {
+            this.portalType = 1;
+            this.portalTarget = parseInt(portalTarget)
+        } else if (portalType === "portal") {
+            this.portalType = 2;
+            this.portalTarget = portalTarget
+        } else {
+            this.portalType = 0;
+            this.portalTarget = null
+        } 
+        this.color = new THREE.Color(color)
+    },
+
+    setRadius(val) {
+        this.el.setAttribute('animation__portal', {
+          from: this.material.uniforms.radius.value,
+          to: val,
+        })
+    },
+    open() {
+        this.setRadius(1)
+    },
+    close() {
+        this.setRadius(0)
+    },
+    isClosed() {
+        return this.material.uniforms.radius.value === 0
+    },
 })

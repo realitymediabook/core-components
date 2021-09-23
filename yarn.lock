@@ -454,13 +454,6 @@
   "resolved" "https://registry.npmjs.org/etag/-/etag-1.8.1.tgz"
   "version" "1.8.1"
 
-"ethereal@^2.0":
-  "resolved" "file:../../gatech/ethereal/packages/ethereal"
-  "version" "2.0.8"
-  dependencies:
-    "@etherealjs/core" "^2.0.0"
-    "@etherealjs/web-layer" "^2.0.0"
-
 "eventemitter3@^4.0.0":
   "integrity" "sha512-8guHBZCwKnFhYdHr2ysuRWErTwhoN2X8XELRlrRwpmfeY2jjuUN4taQMsULKUVo1K4DvZl+0pgfyoysHxvmvEw=="
   "resolved" "https://registry.npmjs.org/eventemitter3/-/eventemitter3-4.0.7.tgz"
