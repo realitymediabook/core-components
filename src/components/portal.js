@@ -229,14 +229,14 @@ AFRAME.registerComponent('portal', {
     root.addEventListener("model-loaded", initializer);
   },
 
-  followPortal: function() {
-    if (this.portalType == 1) {
-        console.log("set window.location.href to " + this.other)
-        window.location.href = this.other
-      } else if (this.portalType == 2) {
-        this.system.teleportTo(this.other.object3D)
-      }
-  },
+//   followPortal: function() {
+//     if (this.portalType == 1) {
+//         console.log("set window.location.href to " + this.other)
+//         window.location.href = this.other
+//       } else if (this.portalType == 2) {
+//         this.system.teleportTo(this.other.object3D)
+//       }
+//   },
   tick: function (time) {
     this.material.uniforms.time.value = time / 1000
         
@@ -246,8 +246,11 @@ AFRAME.registerComponent('portal', {
       const dist = worldCameraPos.distanceTo(worldPos)
 
       if (this.portalType == 1 && dist < 1) {
-        console.log("set window.location.href to " + this.other)
-        window.location.href = this.other
+          if (!this.locationhref) {
+            console.log("set window.location.href to " + this.other)
+            this.locationhref = this.other
+            window.location.href = this.other
+          }
       } else if (this.portalType == 2 && dist < 1) {
         this.system.teleportTo(this.other.object3D)
       }
