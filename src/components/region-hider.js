@@ -212,11 +212,10 @@ AFRAME.registerComponent('region-hider', {
             return;
         }
         
-        this.nodeName = this.el.parentEl.parentEl.className
         if(this.data.size == 0) {
             this.data.size = 10;
+            this.size = this.parseNodeName(this.data.size);
         }
-        this.size = this.parseNodeName(this.data.size);
 
         // this.newScene = this.newScene.bind(this)
         // this.el.sceneEl.addEventListener("environment-scene-loaded", this.newScene)
@@ -275,6 +274,13 @@ AFRAME.registerComponent('region-hider', {
 
     },
 
+    isAncestor: function (root, entity) {
+        while (entity && !(entity == root)) {
+          entity = entity.parentNode;
+        }
+        return (entity == root);
+    },
+    
     // Things we don't want to hide:
     // - [waypoint]
     // - parent of something with [navmesh] as a child (this is the navigation stuff
@@ -291,10 +297,12 @@ AFRAME.registerComponent('region-hider', {
     // - [spot-light]
     // - [point-light]
     sceneLoaded: function () {
-        var nodes = this.el.parentEl.parentEl.parentEl.childNodes;
+        let nodes = document.getElementById("environment-scene").children[0].children[0]
+        //var nodes = this.el.parentEl.parentEl.parentEl.childNodes;
         for (let i=0; i < nodes.length; i++) {
             let node = nodes[i]
-            if (node == this.el.parentEl.parentEl) {continue}
+            //if (node == this.el.parentEl.parentEl) {continue}
+            if (this.isAncestor(node, this.el)) {continue}
 
             let cl = node.className
             if (cl === "CombinedMesh" || cl === "scene-preview-camera") {continue}
@@ -320,10 +328,12 @@ AFRAME.registerComponent('region-hider', {
     },
 
     update: function () {
-        if (this.data.size == 0) {this.data.size = 10}
         if (this.data.size === this.size) return
 
-        this.size = this.parseNodeName(this.data.size);
+        if (this.data.size == 0) {
+            this.data.size = 10
+            this.size = this.parseNodeName(this.data.size);
+        }
     },
 
     remove: function () {
@@ -373,6 +383,8 @@ AFRAME.registerComponent('region-hider', {
         //  "size" (an integer number)
         // at the very end.  This will set the hidder component to 
         // use that size in meters for the quadrants
+        this.nodeName = this.el.parentEl.parentEl.className
+
         const params = this.nodeName.match(/_([0-9]*)$/)
 
         // if pattern matches, we will have length of 2, first match is the dir,

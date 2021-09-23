@@ -1,0 +1,63 @@
+{
+    "comment": "https://github.com/aelatgt/Spoke/tree/feature/component-system/src/editor/nodes for nodes",
+
+  "types": {
+  },
+  "components": {
+    "html-script": {
+        "category": "AEL",
+        "nodes": ["Image"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "default": ""
+          }
+        }
+    },
+    "portal": {
+        "category": "AEL",
+        "nodes": ["Model", "Image"],
+        "properties": {
+            "portalType": { 
+                "type": "string",
+                "default": "" 
+            },
+            "portalTarget": { 
+                "type": "string",
+                "default": "" 
+            },
+            "color": { 
+                "type": "color" 
+            },
+            "materialTarget": {
+                "type": "string",
+                "default": ""
+            }
+        }
+    },
+    "shader": {
+        "category": "AEL",
+        "nodes": ["Model", "Image"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "default": ""
+          },
+          "target": {
+            "type": "string",
+            "default": ""
+          }
+        }
+    },
+    "region-hider": {
+        "category": "AEL",
+        "nodes": ["Scene", "Group", "Image"],
+        "properties": {
+            "size" : {
+                "type": "integer",
+                "default": 10
+            }
+        }
+    }
+  }
+}

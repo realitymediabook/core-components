@@ -4,7 +4,7 @@
  * create a HTML object by rendering a script that creates and manages it
  *
  */
-
+import { findAncestorWithComponent } from "../utils/scene-graph";
 import * as htmlComponents from "https://resources.realitymedia.digital/vue-apps/dist/hubs.js";
 
 // var htmlComponents;
@@ -47,16 +47,28 @@ AFRAME.registerComponent('html-script', {
     init: function () {
         this.script = null;
         this.fullName = this.data.name;
-        this.parseNodeName();
-        this.createScript();
+
+        if (!this.fullName || this.fullName.length == 0) {
+            this.parseNodeName();
+        } else {
+            this.componentName = this.fullName
+        }
+
+        let root = findAncestorWithComponent(this.el, "gltf-model-plus")
+        root.addEventListener("model-loaded", (ev) => { 
+            this.createScript()
+        });
+
+        //this.createScript();
     },
 
     update: function () {
         if (this.data.name === "" || this.data.name === this.fullName) return
 
         this.fullName = this.data.name;
-        this.parseNodeName();
-
+        // this.parseNodeName();
+        this.componentName = this.fullName;
+        
         if (this.script) {
             this.destroyScript()
         }
@@ -73,183 +85,263 @@ AFRAME.registerComponent('html-script', {
         // the scene via a .glb, it must have a valid name parameter inside it.
         // A .glb in spoke will fall back to the spoke name if you use one without
         // a name inside it.
-        this.loadScript().then( () => {
-            if (!this.script) return
+        let loader = () => {
 
-            if (this.script.isNetworked) {
-                // get the parent networked entity, when it's finished initializing.  
-                // When creating this as part of a GLTF load, the 
-                // parent a few steps up will be networked.  We'll only do this
-                // if the HTML script wants to be networked
-                this.netEntity = null
+            this.loadScript().then( () => {
+                if (!this.script) return
 
-                // bind callbacks
-                this.getSharedData = this.getSharedData.bind(this);
-                this.takeOwnership = this.takeOwnership.bind(this);
-                this.setSharedData = this.setSharedData.bind(this)
+                if (this.script.isNetworked) {
+                    // get the parent networked entity, when it's finished initializing.  
+                    // When creating this as part of a GLTF load, the 
+                    // parent a few steps up will be networked.  We'll only do this
+                    // if the HTML script wants to be networked
+                    this.netEntity = null
 
-                this.script.setNetworkMethods(this.takeOwnership, this.setSharedData)
-            }
+                    // bind callbacks
+                    this.getSharedData = this.getSharedData.bind(this);
+                    this.takeOwnership = this.takeOwnership.bind(this);
+                    this.setSharedData = this.setSharedData.bind(this)
 
-            // set up the local content and hook it to the scene
-            const scriptEl = document.createElement('a-entity')
-            this.simpleContainer = scriptEl
-            this.simpleContainer.object3D.matrixAutoUpdate = true
-            this.simpleContainer.setObject3D("weblayer3d", this.script.webLayer3D)
-
-            // lets figure out the scale, but scaling to fill the a 1x1m square, that has also
-            // potentially been scaled by the parents parent node. If we scale the entity in spoke,
-            // this is where the scale is set.  If we drop a node in and scale it, the scale is also
-            // set there.
-            // We used to have a fixed size passed back from the entity, but that's too restrictive:
-            // const width = this.script.width
-            // const height = this.script.height
-
-            var parent2 = this.el.parentEl.parentEl.object3D
-            var width = parent2.scale.x
-            var height = parent2.scale.y
-            parent2.scale.x = 1
-            parent2.scale.y = 1
-            parent2.scale.z = 1
-
-            if (width && width > 0 && height && height > 0) {
-                const {width: wsize, height: hsize} = this.script.getSize()
-                var scale = Math.min(width / wsize, height / hsize)
-                this.simpleContainer.setAttribute("scale", { x: scale, y: scale, z: scale});
-            }
-
-            // there will be one element already, the cube we created in blender
-            // and attached this component to, so remove it if it is there.
-            // this.el.object3D.children.pop()
-            for (const c of this.el.object3D.children) {
-                c.visible = false;
-            }
-
-            // make sure "isStatic" is correct;  can't be static if either interactive or networked
-            if (this.script.isStatic && (this.script.isInteractive || this.script.isNetworked)) {
-                this.script.isStatic = false;
-            }
-                        
-            // add in our container
-            this.el.appendChild(this.simpleContainer)
-
-            if (this.script.isInteractive) {
-                // make the html object clickable
-                this.simpleContainer.setAttribute('is-remote-hover-target','')
-                this.simpleContainer.setAttribute('tags', {singleActionButton: true})
-                this.simpleContainer.setAttribute('class', "interactable")
-
-                // forward the 'interact' events to our object 
-                this.clicked = this.clicked.bind(this)
-                this.simpleContainer.object3D.addEventListener('interact', this.clicked)
-
-                if (this.script.isDraggable) {
-                    // we aren't going to really deal with this till we have a use case, but
-                    // we can set it up for now
-                    this.simpleContainer.setAttribute('tags', {singleActionButton: true, 
-                        isHoldable: true,  holdableButton: true})
-    
-                    this.simpleContainer.object3D.addEventListener('holdable-button-down', (evt) => {
-                        this.script.dragStart(evt)
-                    })
-                    this.simpleContainer.object3D.addEventListener('holdable-button-up', (evt) => {
-                        this.script.dragEnd(evt)
-                    })
+                    this.script.setNetworkMethods(this.takeOwnership, this.setSharedData)
                 }
 
-                //this.raycaster = new THREE.Raycaster()
-                this.hoverRayL = new THREE.Ray()
-                this.hoverRayR = new THREE.Ray()
-            }
-            if (this.script.isNetworked) {
-                // This function finds an existing copy of the Networked Entity (if we are not the
-                // first client in the room it will exist in other clients and be created by NAF)
-                // or create an entity if we are first.
-                this.setupNetworkedEntity = function (networkedEl) {
-                    var persistent = true;
-                    var netId;
-                    if (networkedEl) {
-                        // We will be part of a Networked GLTF if the GLTF was dropped on the scene
-                        // or pinned and loaded when we enter the room.  Use the networked parents
-                        // networkId plus a disambiguating bit of text to create a unique Id.
-                        netId = NAF.utils.getNetworkId(networkedEl) + "-html-script";
+                // set up the local content and hook it to the scene
+                const scriptEl = document.createElement('a-entity')
+                this.simpleContainer = scriptEl
+                this.simpleContainer.object3D.matrixAutoUpdate = true
+                this.simpleContainer.setObject3D("weblayer3d", this.script.webLayer3D)
 
-                        // if we need to create an entity, use the same persistence as our
-                        // network entity (true if pinned, false if not)
-                        persistent = entity.components.networked.data.persistent;
-                    } else {
-                        // this only happens if this component is on a scene file, since the
-                        // elements on the scene aren't networked.  So let's assume each entity in the
-                        // scene will have a unique name.  Adding a bit of text so we can find it
-                        // in the DOM when debugging.
-                        netId = this.fullName.replaceAll("_","-") + "-html-script"
-                    }
+                // lets figure out the scale, but scaling to fill the a 1x1m square, that has also
+                // potentially been scaled by the parents parent node. If we scale the entity in spoke,
+                // this is where the scale is set.  If we drop a node in and scale it, the scale is also
+                // set there.
+                // We used to have a fixed size passed back from the entity, but that's too restrictive:
+                // const width = this.script.width
+                // const height = this.script.height
 
-                    // check if the networked entity we create for this component already exists. 
-                    // otherwise, create it
-                    // - NOTE: it is created on the scene, not as a child of this entity, because
-                    //   NAF creates remote entities in the scene.
-                    var entity;
-                    if (NAF.entities.hasEntity(netId)) {
-                        entity = NAF.entities.getEntity(netId);
-                    } else {
-                        entity = document.createElement('a-entity')
+                // TODO: need to find environment-scene, go down two levels to the group above 
+                // the nodes in the scene.  Then accumulate the scales up from this node to
+                // that node.  This will account for groups, and nesting.
 
-                        // store the method to retrieve the script data on this entity
-                        entity.getSharedData = this.getSharedData;
-
-                        // the "networked" component should have persistent=true, the template and 
-                        // networkId set, owner set to "scene" (so that it doesn't update the rest of
-                        // the world with it's initial data, and should NOT set creator (the system will do that)
-                        entity.setAttribute('networked', {
-                            template: "#script-data-media",
-                            persistent: persistent,
-                            owner: "scene",  // so that our initial value doesn't overwrite others
-                            networkId: netId
-                        });
-                        this.el.sceneEl.appendChild(entity);
-                    }
-
-                    // save a pointer to the networked entity and then wait for it to be fully
-                    // initialized before getting a pointer to the actual networked component in it
-                    this.netEntity = entity;
-                    NAF.utils.getNetworkedEntity(this.netEntity).then(networkedEl => {
-                        this.stateSync = networkedEl.components["script-data"]
-
-                        // if this is the first networked entity, it's sharedData will default to the empty 
-                        // string, and we should initialize it with the initial data from the script
-                        if (this.stateSync.sharedData === 0) {
-                            let networked = networkedEl.components["networked"]
-                            // if (networked.data.creator == NAF.clientId) {
-                            //     this.stateSync.initSharedData(this.script.getSharedData())
-                            // }
-                        }
-                    })
-                }
-                this.setupNetworkedEntity = this.setupNetworkedEntity.bind(this)
-
-                this.setupNetworked = function () {
-                    NAF.utils.getNetworkedEntity(this.el).then(networkedEl => {
-                        this.setupNetworkedEntity(networkedEl)
-                    }).catch(() => {
-                        this.setupNetworkedEntity()
-                    })
-                }
-                this.setupNetworked = this.setupNetworked.bind(this)
-
-                // This method handles the different startup cases:
-                // - if the GLTF was dropped on the scene, NAF will be connected and we can 
-                //   immediately initialize
-                // - if the GLTF is in the room scene or pinned, it will likely be created
-                //   before NAF is started and connected, so we wait for an event that is
-                //   fired when Hubs has started NAF
-                if (NAF.connection && NAF.connection.isConnected()) {
-                    this.setupNetworked();
+                var width = 1, height = 1;
+                if (this.el.components["media-image"]) {
+                    // attached to an image in spoke, so the image mesh is size 1 and is scaled directly
+                    let scaleM = this.el.object3DMap["mesh"].scale
+                    let scaleI = this.el.object3D.scale
+                    width = scaleM.x * scaleI.x
+                    height = scaleM.y * scaleI.y
+                    scaleI.x = 1
+                    scaleI.y = 1
+                    scaleI.z = 1
+                    this.el.object3D.matrixNeedsUpdate = true;
                 } else {
-                    this.el.sceneEl.addEventListener('didConnectToNetworkedScene', this.setupNetworked)
+                    // it's embedded in a simple gltf model;  other models may not work
+                    // we assume it's at the top level mesh, and that the model itself is scaled
+                    let mesh = this.el.object3DMap["mesh"]
+                    if (mesh) {
+                        let box = mesh.geometry.boundingBox;
+                        width = (box.max.x - box.min.x) * mesh.scale.x
+                        height = (box.max.y - box.min.y) * mesh.scale.y
+                    } else {
+                        let meshScale = this.el.object3D.scale
+                        width = meshScale.x
+                        height = meshScale.y
+                        meshScale.x = 1
+                        meshScale.y = 1
+                        meshScale.z = 1
+                        this.el.object3D.matrixNeedsUpdate = true;
+                    }
+                    // apply the root gltf scale.
+                    var parent2 = this.el.parentEl.parentEl.object3D
+                    width *= parent2.scale.x
+                    height *= parent2.scale.y
+                    parent2.scale.x = 1
+                    parent2.scale.y = 1
+                    parent2.scale.z = 1
+                    parent2.matrixNeedsUpdate = true;
                 }
-            }
-        })
+
+                if (width > 0 && height > 0) {
+                    const {width: wsize, height: hsize} = this.script.getSize()
+                    var scale = Math.min(width / wsize, height / hsize)
+                    this.simpleContainer.setAttribute("scale", { x: scale, y: scale, z: scale});
+                }
+
+                // there will be one element already, the cube we created in blender
+                // and attached this component to, so remove it if it is there.
+                // this.el.object3D.children.pop()
+                for (const c of this.el.object3D.children) {
+                    c.visible = false;
+                }
+
+                // make sure "isStatic" is correct;  can't be static if either interactive or networked
+                if (this.script.isStatic && (this.script.isInteractive || this.script.isNetworked)) {
+                    this.script.isStatic = false;
+                }
+                            
+                // add in our container
+                this.el.appendChild(this.simpleContainer)
+
+                // TODO:  we are going to have to make sure this works if 
+                // the script is ON an interactable (like an image)
+                
+                if (this.script.isInteractive) {
+                    if (this.el.classList.contains("interactable")) {
+                      // this.el.classList.remove("interactable")
+                    }
+
+                    // make the html object clickable
+                    this.simpleContainer.setAttribute('is-remote-hover-target','')
+                    this.simpleContainer.setAttribute('tags', {
+                        singleActionButton: true,
+                        inspectable: true,
+                        isStatic: true,
+                        togglesHoveredActionSet: true
+                    })
+                    this.simpleContainer.setAttribute('class', "interactable")
+
+                    // forward the 'interact' events to our object 
+                    this.clicked = this.clicked.bind(this)
+                    this.simpleContainer.object3D.addEventListener('interact', this.clicked)
+
+                    if (this.script.isDraggable) {
+                        // we aren't going to really deal with this till we have a use case, but
+                        // we can set it up for now
+                        this.simpleContainer.setAttribute('tags', {
+                            singleActionButton: true, 
+                            isHoldable: true,  
+                            holdableButton: true,
+                            inspectable: true,
+                            isStatic: true,
+                            togglesHoveredActionSet: true
+                        })
+        
+                        this.simpleContainer.object3D.addEventListener('holdable-button-down', (evt) => {
+                            this.script.dragStart(evt)
+                        })
+                        this.simpleContainer.object3D.addEventListener('holdable-button-up', (evt) => {
+                            this.script.dragEnd(evt)
+                        })
+                    }
+
+                    //this.raycaster = new THREE.Raycaster()
+                    this.hoverRayL = new THREE.Ray()
+                    this.hoverRayR = new THREE.Ray()
+                } else {
+                    // no interactivity, please
+                    if (this.el.classList.contains("interactable")) {
+                        this.el.classList.remove("interactable")
+                    }
+                }
+
+                // TODO: this SHOULD work but make sure it works if the el we are on
+                // is networked, such as when attached to an image
+
+                if (this.el.hasAttribute("networked")) {
+                    this.el.removeAttribute("networked")
+                }
+
+                if (this.script.isNetworked) {
+                    // This function finds an existing copy of the Networked Entity (if we are not the
+                    // first client in the room it will exist in other clients and be created by NAF)
+                    // or create an entity if we are first.
+                    this.setupNetworkedEntity = function (networkedEl) {
+                        var persistent = true;
+                        var netId;
+                        if (networkedEl) {
+                            // We will be part of a Networked GLTF if the GLTF was dropped on the scene
+                            // or pinned and loaded when we enter the room.  Use the networked parents
+                            // networkId plus a disambiguating bit of text to create a unique Id.
+                            netId = NAF.utils.getNetworkId(networkedEl) + "-html-script";
+
+                            // if we need to create an entity, use the same persistence as our
+                            // network entity (true if pinned, false if not)
+                            persistent = entity.components.networked.data.persistent;
+                        } else {
+                            // this only happens if this component is on a scene file, since the
+                            // elements on the scene aren't networked.  So let's assume each entity in the
+                            // scene will have a unique name.  Adding a bit of text so we can find it
+                            // in the DOM when debugging.
+                            netId = this.fullName.replaceAll("_","-") + "-html-script"
+                        }
+
+                        // check if the networked entity we create for this component already exists. 
+                        // otherwise, create it
+                        // - NOTE: it is created on the scene, not as a child of this entity, because
+                        //   NAF creates remote entities in the scene.
+                        var entity;
+                        if (NAF.entities.hasEntity(netId)) {
+                            entity = NAF.entities.getEntity(netId);
+                        } else {
+                            entity = document.createElement('a-entity')
+
+                            // store the method to retrieve the script data on this entity
+                            entity.getSharedData = this.getSharedData;
+
+                            // the "networked" component should have persistent=true, the template and 
+                            // networkId set, owner set to "scene" (so that it doesn't update the rest of
+                            // the world with it's initial data, and should NOT set creator (the system will do that)
+                            entity.setAttribute('networked', {
+                                template: "#script-data-media",
+                                persistent: persistent,
+                                owner: "scene",  // so that our initial value doesn't overwrite others
+                                networkId: netId
+                            });
+                            this.el.sceneEl.appendChild(entity);
+                        }
+
+                        // save a pointer to the networked entity and then wait for it to be fully
+                        // initialized before getting a pointer to the actual networked component in it
+                        this.netEntity = entity;
+                        NAF.utils.getNetworkedEntity(this.netEntity).then(networkedEl => {
+                            this.stateSync = networkedEl.components["script-data"]
+
+                            // if this is the first networked entity, it's sharedData will default to the empty 
+                            // string, and we should initialize it with the initial data from the script
+                            if (this.stateSync.sharedData === 0) {
+                                let networked = networkedEl.components["networked"]
+                                // if (networked.data.creator == NAF.clientId) {
+                                //     this.stateSync.initSharedData(this.script.getSharedData())
+                                // }
+                            }
+                        })
+                    }
+                    this.setupNetworkedEntity = this.setupNetworkedEntity.bind(this)
+
+                    this.setupNetworked = function () {
+                        NAF.utils.getNetworkedEntity(this.el).then(networkedEl => {
+                            this.setupNetworkedEntity(networkedEl)
+                        }).catch(() => {
+                            this.setupNetworkedEntity()
+                        })
+                    }
+                    this.setupNetworked = this.setupNetworked.bind(this)
+
+                    // This method handles the different startup cases:
+                    // - if the GLTF was dropped on the scene, NAF will be connected and we can 
+                    //   immediately initialize
+                    // - if the GLTF is in the room scene or pinned, it will likely be created
+                    //   before NAF is started and connected, so we wait for an event that is
+                    //   fired when Hubs has started NAF
+                    if (NAF.connection && NAF.connection.isConnected()) {
+                        this.setupNetworked();
+                    } else {
+                        this.el.sceneEl.addEventListener('didConnectToNetworkedScene', this.setupNetworked)
+                    }
+                }
+            })
+        }
+        // if attached to a node with a media-loader component, this means we attached this component
+        // to a media object in Spoke.  We should wait till the object is fully loaded.  
+        // Otherwise, it was attached to something inside a GLTF (probably in blender)
+        if (this.el.components["media-loader"]) {
+            this.el.addEventListener("media-loaded", () => {
+                loader()
+            },
+            { once: true })
+        } else {
+            loader()
+        }
     },
 
     play: function () {
@@ -362,10 +454,17 @@ AFRAME.registerComponent('html-script', {
         this.script.tick(time)
     },
   
-  parseNodeName: function () {
+    // TODO:  should only be called if there is no parameter specifying the
+    // html script name.
+    parseNodeName: function () {
         if (this.fullName === "") {
+
+            // TODO:  switch this to find environment-root and go down to 
+            // the node at the room of scene (one above the various nodes).  
+            // then go up from here till we get to a node that has that node
+            // as it's parent
             this.fullName = this.el.parentEl.parentEl.className
-        }
+        } 
 
         // nodes should be named anything at the beginning with 
         //  "componentName"
@@ -381,9 +480,9 @@ AFRAME.registerComponent('html-script', {
         } else {
             this.componentName = params[1]
         }
-  },
+    },
 
-  loadScript: async function () {
+    loadScript: async function () {
         // if (scriptPromise) {
         //     try {
         //         htmlComponents = await scriptPromise;
