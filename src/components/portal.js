@@ -155,7 +155,7 @@ AFRAME.registerComponent('portal', {
             }).catch(e => console.error(e))    
         })
     } else if (this.portalType == 2) {    
-        this.cubeCamera = new THREE.CubeCamera(1, 100000, new THREE.WebGLCubeRenderTarget(1024))
+        this.cubeCamera = new THREE.CubeCamera(1, 100000, 1024)
         this.cubeCamera.rotateY(Math.PI) // Face forwards
         this.el.object3D.add(this.cubeCamera)
         this.other.components.portal.material.uniforms.cubeMap.value = this.cubeCamera.renderTarget.texture
@@ -245,7 +245,7 @@ AFRAME.registerComponent('portal', {
       this.el.sceneEl.camera.getWorldPosition(worldCameraPos)
       const dist = worldCameraPos.distanceTo(worldPos)
 
-      if (this.portalType == 1 && dist < 0.5) {
+      if (this.portalType == 1 && dist < 1) {
         console.log("set window.location.href to " + this.other)
         window.location.href = this.other
       } else if (this.portalType == 2 && dist < 1) {
