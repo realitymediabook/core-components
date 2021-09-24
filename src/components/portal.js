@@ -154,11 +154,20 @@ AFRAME.registerComponent('portal', {
                 this.material.uniforms.cubeMap.value = texture;
             }).catch(e => console.error(e))    
         })
-    } else if (this.portalType == 2) {    
+    } else if (this.portalType == 2 || this.portalType == 3) {    
         this.cubeCamera = new THREE.CubeCamera(1, 100000, 1024)
         this.cubeCamera.rotateY(Math.PI) // Face forwards
-        this.el.object3D.add(this.cubeCamera)
-        this.other.components.portal.material.uniforms.cubeMap.value = this.cubeCamera.renderTarget.texture
+        if (this.portalType == 2) {
+            this.el.object3D.add(this.cubeCamera)
+            this.other.components.portal.material.uniforms.cubeMap.value = this.cubeCamera.renderTarget.texture    
+        } else {
+            let waypoint = document.getElementsByClassName(this.portalTarget)
+            if (waypoint.length > 0) {
+                waypoint = waypoint.item(0)
+                waypoint.object3D.add(this.cubeCamera)
+                this.material.uniforms.cubeMap.value = this.cubeCamera.renderTarget.texture;
+            }
+        }
         this.el.sceneEl.addEventListener('model-loaded', () => {
             showRegionForObject(this.el)
             this.cubeCamera.update(this.el.sceneEl.renderer, this.el.sceneEl.object3D)
@@ -253,6 +262,19 @@ AFRAME.registerComponent('portal', {
           }
       } else if (this.portalType == 2 && dist < 1) {
         this.system.teleportTo(this.other.object3D)
+      } else if (this.portalType == 3) {
+          if (dist < 1) {
+            if (!this.locationhref) {
+              console.log("set window.location.hash to " + this.other)
+              this.locationhref = this.other
+              window.location.hash = this.other
+            }
+          } else {
+              // if we set locationhref, we teleported.  when it
+              // finally happens, and we move outside the range of the portal,
+              // we will clear the flag
+              this.locationhref = null
+          }
       }
     }
   },
@@ -262,6 +284,9 @@ AFRAME.registerComponent('portal', {
         if (this.portalType  == 1) {
             // the target is another room, resolve with the URL to the room
             this.system.getRoomURL(this.portalTarget).then(url => { resolve(url) })
+        }
+        if (this.portalType == 3) {
+            resolve ("#" + this.portalTarget)
         }
 
         // now find the portal within the room.  The portals should come in pairs with the same portalTarget
@@ -306,6 +331,9 @@ AFRAME.registerComponent('portal', {
             this.portalTarget = parseInt(portalTarget)
         } else if (portalType === "portal") {
             this.portalType = 2;
+            this.portalTarget = portalTarget
+        } else if (portalType === "waypoint") {
+            this.portalType = 3;
             this.portalTarget = portalTarget
         } else {
             this.portalType = 0;
