@@ -84,6 +84,10 @@ AFRAME.registerComponent('shader', {
             break;
       }
 
+
+      // TODO:  key a record of new materials, indexed by the original
+      // material UUID, so we can just return it if replace is called on
+      // the same material more than once
       let replaceMaterial = (oldMaterial: THREE.Material) => {
         //   if (oldMaterial.type != "MeshStandardMaterial") {
         //       console.warn("Shader Component: don't know how to handle Shaders of type '" + oldMaterial.type + "', only MeshStandardMaterial at this time.")
