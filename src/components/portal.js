@@ -191,7 +191,7 @@ AFRAME.registerComponent('portal', {
     //this.followPortal = this.followPortal.bind(this)
     //this.el.object3D.addEventListener('interact', this.followPortal)
 
-    this.el.setAttribute('proximity-events', { radius: 5 })
+    this.el.setAttribute('proximity-events', { radius: 4 })
     this.el.addEventListener('proximityenter', () => this.open())
     this.el.addEventListener('proximityleave', () => this.close())
   },
