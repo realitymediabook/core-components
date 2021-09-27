@@ -17,6 +17,7 @@ import { FireTunnelShader } from '../shaders/fire-tunnel'
 import { MistShader } from '../shaders/mist'
 import { Marble1Shader } from '../shaders/marble1'
 import { NotFoundShader } from '../shaders/not-found'
+import { WarpShader } from '../shaders/warp'
 
 function mapMaterials(object3D: THREE.Object3D, fn: (material: THREE.Material) => void) {
     let mesh = object3D as THREE.Mesh
@@ -47,6 +48,10 @@ AFRAME.registerComponent('shader', {
       switch (this.data.name) {
         case "noise":
             shaderDef = NoiseShader
+            break;
+
+        case "warp":
+            shaderDef = WarpShader
             break;
 
         case "liquidmarble":

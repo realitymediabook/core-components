@@ -58,6 +58,16 @@
                 "default": 10
             }
         }
+    },
+    "immersive-360": {
+        "category": "AEL",
+        "nodes": ["Group"],
+        "properties": {
+            "url" : {
+                "type": "string",
+                "default": ""
+            }
+        }
     }
   }
 }
