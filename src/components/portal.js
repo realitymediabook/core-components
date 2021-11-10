@@ -13,13 +13,26 @@
  * For example, to make a pair of connected blue portals,
  * you could name them "portal-to__blue" and "portal-from__blue"
  */
+ import * as htmlComponents from "https://resources.realitymedia.digital/vue-apps/dist/hubs.js";
 
 import './proximity-events.js'
-import vertexShader from '../shaders/portal.vert.js'
-import fragmentShader from '../shaders/portal.frag.js'
-import snoise from '../shaders/snoise.js'
+// import vertexShader from '../shaders/portal.vert.js'
+// import fragmentShader from '../shaders/portal.frag.js'
+// import snoise from '../shaders/snoise'
+
 import { showRegionForObject, hiderRegionForObject } from './region-hider.js'
 import { findAncestorWithComponent } from '../utils/scene-graph'
+import { updateWithShader } from './shader'
+import { WarpPortalShader } from '../shaders/warp-portal.js'
+
+import goldcolor from '../assets/Metal_Gold_Foil_002_COLOR.jpg'
+import goldDisplacement from '../assets/Metal_Gold_Foil_002_DISP.jpg'
+import goldgloss from '../assets/Metal_Gold_Foil_002_glossiness.png'
+import goldnorm from '../assets/Metal_Gold_Foil_002_NRM.jpg'
+import goldao from '../assets/Metal_Gold_Foil_002_OCC.jpg'
+
+import { Marble1Shader } from '../shaders/marble1'
+import { replaceMaterial as replaceWithShader} from './shader'
 
 const worldPos = new THREE.Vector3()
 const worldCameraPos = new THREE.Vector3()
@@ -27,16 +40,116 @@ const worldDir = new THREE.Vector3()
 const worldQuat = new THREE.Quaternion()
 const mat4 = new THREE.Matrix4()
 
-function mapMaterials(object3D, fn) {
-    let mesh = object3D 
-    if (!mesh.material) return;
+// load and setup all the bits of the textures for the door
+const loader = new THREE.TextureLoader()
+const doorMaterial = new THREE.MeshStandardMaterial({
+    color: 0xffffff,
+    metalness: 0.0,
+    roughness: 0.0, 
+    //emissiveIntensity: 1
+})
+const doormaterialY = new THREE.MeshStandardMaterial({
+    color: 0xffffff,
+    metalness: 0.0,
+    roughness: 0, 
+    //emissiveIntensity: 1
+})
+
+loader.load(goldcolor, (color) => {
+    doorMaterial.map = color;
+    color.repeat.set(1,25)
+    color.wrapS = THREE.RepeatWrapping;
+    color.wrapT = THREE.RepeatWrapping;
+    doorMaterial.needsUpdate = true
+})
+loader.load(goldcolor, (color) => {
+    //color = color.clone()
+    doormaterialY.map = color;
+    color.repeat.set(1,1)
+    color.wrapS = THREE.ClampToEdgeWrapping;
+    color.wrapT = THREE.ClampToEdgeWrapping;
+    doormaterialY.needsUpdate = true
+})
+
+loader.load(goldDisplacement, (disp) => {
+    doorMaterial.bumpMap = disp;
+    disp.repeat.set(1,25)
+    disp.wrapS = THREE.RepeatWrapping;
+    disp.wrapT = THREE.RepeatWrapping;
+    doorMaterial.needsUpdate = true
+})
+
+loader.load(goldDisplacement, (disp) => {
+    //disp = disp.clone()
+    doormaterialY.bumpMap = disp;
+    disp.repeat.set(1,1)
+    disp.wrapS = THREE.ClampToEdgeWrapping;
+    disp.wrapT = THREE.ClampToEdgeWrapping;
+    doormaterialY.needsUpdate = true
+})
+
+loader.load(goldgloss, (gloss) => {
+    doorMaterial.roughness = gloss
+    gloss.repeat.set(1,25)
+    gloss.wrapS = THREE.RepeatWrapping;
+    gloss.wrapT = THREE.RepeatWrapping;
+    doorMaterial.needsUpdate = true
+})
+
+loader.load(goldgloss, (gloss) => {
+    //gloss = gloss.clone()
+    doormaterialY.roughness = gloss
+    gloss.repeat.set(1,1)
+    gloss.wrapS = THREE.ClampToEdgeWrapping;
+    gloss.wrapT = THREE.ClampToEdgeWrapping;
+    doormaterialY.needsUpdate = true
+})
+         
+loader.load(goldao, (ao) => {
+    doorMaterial.aoMap = ao
+    ao.repeat.set(1,25)
+    ao.wrapS = THREE.RepeatWrapping;
+    ao.wrapT = THREE.RepeatWrapping;
+    doorMaterial.needsUpdate = true
+})
+         
+loader.load(goldao, (ao) => {
+    // ao = ao.clone()
+    doormaterialY.aoMap = ao
+    ao.repeat.set(1,1)
+    ao.wrapS = THREE.ClampToEdgeWrapping;
+    ao.wrapT = THREE.ClampToEdgeWrapping;
+    doormaterialY.needsUpdate = true
+})
+
+loader.load(goldnorm, (norm) => {
+    doorMaterial.normalMap = norm;
+    norm.repeat.set(1,25)
+    norm.wrapS = THREE.RepeatWrapping;
+    norm.wrapT = THREE.RepeatWrapping;
+    doorMaterial.needsUpdate = true
+})
+
+loader.load(goldnorm, (norm) => {
+    // norm = norm.clone()
+    doormaterialY.normalMap = norm;
+    norm.repeat.set(1,1)
+    norm.wrapS = THREE.ClampToEdgeWrapping;
+    norm.wrapT = THREE.ClampToEdgeWrapping;
+    doormaterialY.needsUpdate = true
+})
+
+// // map all materials via a callback.  Taken from hubs materials-utils
+// function mapMaterials(object3D, fn) {
+//     let mesh = object3D 
+//     if (!mesh.material) return;
   
-    if (Array.isArray(mesh.material)) {
-      return mesh.material.map(fn);
-    } else {
-      return fn(mesh.material);
-    }
-}
+//     if (Array.isArray(mesh.material)) {
+//       return mesh.material.map(fn);
+//     } else {
+//       return fn(mesh.material);
+//     }
+// }
   
 AFRAME.registerSystem('portal', {
   dependencies: ['fader-plus'],
@@ -89,7 +202,7 @@ AFRAME.registerSystem('portal', {
     object.getWorldQuaternion(worldQuat)
     object.getWorldDirection(worldDir)
     object.getWorldPosition(worldPos)
-    worldPos.add(worldDir.multiplyScalar(1.5)) // Teleport in front of the portal to avoid infinite loop
+    worldPos.add(worldDir.multiplyScalar(3)) // Teleport in front of the portal to avoid infinite loop
     mat4.makeRotationFromQuaternion(worldQuat)
     mat4.setPosition(worldPos)
     // Using the characterController ensures we don't stray from the navmesh
@@ -104,10 +217,20 @@ AFRAME.registerComponent('portal', {
     portalType: { default: "" },
     portalTarget: { default: "" },
     color: { type: 'color', default: null },
-    materialTarget: { type: 'string', default: null }
+    materialTarget: { type: 'string', default: null },
+    drawDoor: { type: 'boolean', default: false },
+    mainText: { type: 'string', default: null},
+    secondaryText: { type: 'string', default: null}
   },
-  init: async function () {
-    this.system = window.APP.scene.systems.portal // A-Frame is supposed to do this by default but doesn't?
+  init: function () {
+
+    // TESTING
+    //this.data.drawDoor = true
+    // this.data.mainText = "Portal to the Abyss"
+    // this.data.secondaryText = "To visit the Abyss, go through the door!"
+
+    // A-Frame is supposed to do this by default but doesn't seem to?
+    this.system = window.APP.scene.systems.portal 
 
     if (this.data.portalType.length > 0 ) {
         this.setPortalInfo(this.data.portalType, this.data.portalTarget, this.data.color)
@@ -120,123 +243,209 @@ AFRAME.registerComponent('portal', {
         this.parseNodeName()
     }
     
-    this.material = new THREE.ShaderMaterial({
-      transparent: true,
-      side: THREE.DoubleSide,
-      uniforms: {
-        cubeMap: { value: new THREE.Texture() },
-        time: { value: 0 },
-        radius: { value: 0 },
-        ringColor: { value: this.color },
-      },
-      vertexShader,
-      fragmentShader: `
-        ${snoise}
-        ${fragmentShader}
-      `,
-    })
+    // wait until the scene loads to finish.  We want to make sure everything
+    // is initialized
+    let root = findAncestorWithComponent(this.el, "gltf-model-plus")
+    root.addEventListener("model-loaded", (ev) => { 
+        this.initialize()
+    });
+  },
+
+  initialize: async function () {
+    // this.material = new THREE.ShaderMaterial({
+    //   transparent: true,
+    //   side: THREE.DoubleSide,
+    //   uniforms: {
+    //     cubeMap: { value: new THREE.Texture() },
+    //     time: { value: 0 },
+    //     radius: { value: 0 },
+    //     ringColor: { value: this.color },
+    //   },
+    //   vertexShader,
+    //   fragmentShader: `
+    //     ${snoise}
+    //     ${fragmentShader}
+    //   `,
+    // })
 
     // Assume that the object has a plane geometry
     //const mesh = this.el.getOrCreateObject3D('mesh')
     //mesh.material = this.material
-    this.replaceMaterial(this.material)
+
+    this.materials = null
+    this.radius = 0.2
+    this.cubeMap = new THREE.CubeTexture()
 
     // get the other before continuing
     this.other = await this.getOther()
 
-    if (this.portalType == 1) {
-        this.system.getCubeMap(this.portalTarget).then( urls => {
-            //const urls = [cubeMapPosX, cubeMapNegX, cubeMapPosY, cubeMapNegY, cubeMapPosZ, cubeMapNegZ];
-            const texture = new Promise((resolve, reject) =>
-              new THREE.CubeTextureLoader().load(urls, resolve, undefined, reject)
-            ).then(texture => {
-                texture.format = THREE.RGBFormat;
-                this.material.uniforms.cubeMap.value = texture;
-            }).catch(e => console.error(e))    
-        })
-    } else if (this.portalType == 2 || this.portalType == 3) {    
-        this.cubeCamera = new THREE.CubeCamera(1, 100000, 1024)
-        this.cubeCamera.rotateY(Math.PI) // Face forwards
-        if (this.portalType == 2) {
-            this.el.object3D.add(this.cubeCamera)
-            this.other.components.portal.material.uniforms.cubeMap.value = this.cubeCamera.renderTarget.texture    
-        } else {
-            let waypoint = document.getElementsByClassName(this.portalTarget)
-            if (waypoint.length > 0) {
-                waypoint = waypoint.item(0)
-                waypoint.object3D.add(this.cubeCamera)
-                this.material.uniforms.cubeMap.value = this.cubeCamera.renderTarget.texture;
-            }
-        }
-        this.el.sceneEl.addEventListener('model-loaded', () => {
-            showRegionForObject(this.el)
-            this.cubeCamera.update(this.el.sceneEl.renderer, this.el.sceneEl.object3D)
-            hiderRegionForObject(this.el)
-        })
-    }
-
     this.el.setAttribute('animation__portal', {
-        property: 'components.portal.material.uniforms.radius.value',
+        property: 'components.portal.radius',
         dur: 700,
         easing: 'easeInOutCubic',
     })
+
     // this.el.addEventListener('animationbegin', () => (this.el.object3D.visible = true))
     // this.el.addEventListener('animationcomplete__portal', () => (this.el.object3D.visible = !this.isClosed()))
 
     // going to want to try and make the object this portal is on clickable
-    this.el.setAttribute('is-remote-hover-target','')
-    this.el.setAttribute('tags', {singleActionButton: true})
+    // this.el.setAttribute('is-remote-hover-target','')
+    // this.el.setAttribute('tags', {singleActionButton: true})
     //this.el.setAttribute('class', "interactable")
     // orward the 'interact' events to our portal movement 
     //this.followPortal = this.followPortal.bind(this)
     //this.el.object3D.addEventListener('interact', this.followPortal)
 
-    this.el.setAttribute('proximity-events', { radius: 4 })
-    this.el.addEventListener('proximityenter', () => this.open())
-    this.el.addEventListener('proximityleave', () => this.close())
+    if ( this.el.components["media-loader"] || this.el.components["media-image"] ) {
+        if (this.el.components["media-loader"]) {
+            let fn = () => {
+                this.setupPortal();
+                if (this.data.drawDoor) {
+                    this.setupDoor();
+                }
+                this.el.removeEventListener('model-loaded', fn)
+             }
+            this.el.addEventListener("media-loaded", fn)
+        } else {
+            this.setupPortal()
+            if (this.data.drawDoor) {
+                this.setupDoor();
+            }
+    }
+    } else {
+        this.setupPortal()
+        if (this.data.drawDoor) {
+            this.setupDoor();
+        }
+    }
   },
 
-  replaceMaterial: function (newMaterial) {
-    let target = this.data.materialTarget
-    if (target && target.length == 0) {target=null}
+    setupPortal: function () {
+        let target = this.data.materialTarget
+        if (target && target.length == 0) {target=null}
     
-    let traverse = (object) => {
-      let mesh = object
-      if (mesh.material) {
-          mapMaterials(mesh, (material) => {         
-              if (!target || material.name === target) {
-                  mesh.material = newMaterial
-              }
-          })
-      }
-      const children = object.children;
-      for (let i = 0; i < children.length; i++) {
-          traverse(children[i]);
-      }
-    }
+        this.materials = updateWithShader(WarpPortalShader, this.el, target, {
+            radius: this.radius,
+            ringColor: this.color,
+            cubeMap: this.cubeMap,
+            invertWarpColor: this.portalType == 1 ? 1 : 0
+        })
 
-    let replaceMaterials = () => {
-    // mesh would contain the object that is, or contains, the meshes
-    var mesh = this.el.object3DMap.mesh
-    if (!mesh) {
-        // if no mesh, we'll search through all of the children.  This would
-        // happen if we dropped the component on a glb in spoke
-        mesh = this.el.object3D
-    }
-    traverse(mesh);
-    this.el.removeEventListener("model-loaded", initializer);
-    }
+        if (this.portalType == 1) {
+            this.system.getCubeMap(this.portalTarget).then( urls => {
+                //const urls = [cubeMapPosX, cubeMapNegX, cubeMapPosY, cubeMapNegY, cubeMapPosZ, cubeMapNegZ];
+                const texture = new Promise((resolve, reject) =>
+                  new THREE.CubeTextureLoader().load(urls, resolve, undefined, reject)
+                ).then(texture => {
+                    texture.format = THREE.RGBFormat;
+                    //this.material.uniforms.cubeMap.value = texture;
+                    //this.materials.map((mat) => {mat.userData.cubeMap = texture;})
+                    this.cubeMap = texture
+                }).catch(e => console.error(e))    
+            })
+        } else if (this.portalType == 2 || this.portalType == 3) {    
+            this.cubeCamera = new THREE.CubeCamera(0.1, 1000, 1000)
+            //this.cubeCamera.rotateY(Math.PI) // Face forwards
+            if (this.portalType == 2) {
+                this.el.object3D.add(this.cubeCamera)
+                // this.other.components.portal.material.uniforms.cubeMap.value = this.cubeCamera.renderTarget.texture 
+                //this.other.components.portal.materials.map((mat) => {mat.userData.cubeMap = this.cubeCamera.renderTarget.texture;})
+                this.other.components.portal.cubeMap = this.cubeCamera.renderTarget.texture
+            } else {
+                let waypoint = document.getElementsByClassName(this.portalTarget)
+                if (waypoint.length > 0) {
+                    waypoint = waypoint.item(0)
+                    this.cubeCamera.position.y = 1.6
+                    this.cubeCamera.needsUpdate = true
+                        waypoint.object3D.add(this.cubeCamera)
+                    // this.material.uniforms.cubeMap.value = this.cubeCamera.renderTarget.texture;
+                    //this.materials.map((mat) => {mat.userData.cubeMap = this.cubeCamera.renderTarget.texture;})
+                    this.cubeMap = this.cubeCamera.renderTarget.texture
+                }
+            }
+            this.el.sceneEl.addEventListener('model-loaded', () => {
+                showRegionForObject(this.el)
+                this.cubeCamera.update(this.el.sceneEl.renderer, this.el.sceneEl.object3D)
+                hiderRegionForObject(this.el)
+            })
+        }
 
-    let root = findAncestorWithComponent(this.el, "gltf-model-plus")
-    let initializer = () =>{
-      if (this.el.components["media-loader"]) {
-          this.el.addEventListener("media-loaded", replaceMaterials)
-      } else {
-          replaceMaterials()
-      }
-    };
-    root.addEventListener("model-loaded", initializer);
-  },
+        let scaleM = this.el.object3DMap["mesh"].scale
+        let scaleI = this.el.object3D.scale
+        this.Yoffset = -(scaleM.y * scaleI.y / 2) + 1.6
+
+        this.el.setAttribute('proximity-events', { radius: 4, Yoffset: this.Yoffset })
+        this.el.addEventListener('proximityenter', () => this.open())
+        this.el.addEventListener('proximityleave', () => this.close())
+    
+        this.scriptData = {
+            width: 300,
+            height: 50,
+            message: this.data.mainText
+        }
+        const portalTitle = htmlComponents["PortalTitle"]
+        this.scriptData.message = this.data.secondaryText
+        const portalSubtitle = htmlComponents["PortalSubtitle"]
+
+        this.portalTitle = portalTitle(this.scriptData)
+        this.portalSubtitle = portalSubtitle(this.scriptData)
+
+        this.el.setObject3D('portalTitle', this.portalTitle.webLayer3D)
+        this.portalTitle.webLayer3D.position.y = 0.75
+        this.el.setObject3D('portalSubtitle', this.portalSubtitle.webLayer3D)
+        this.portalSubtitle.webLayer3D.position.x = 1
+        this.el.setObject3D.matrixAutoUpdate = true
+        this.portalTitle.webLayer3D.matrixAutoUpdate = true
+        this.portalSubtitle.webLayer3D.matrixAutoUpdate = true
+
+        // this.materials.map((mat) => {
+        //     mat.userData.radius = this.radius
+        //     mat.userData.ringColor = this.color
+        //     mat.userData.cubeMap = this.cubeMap
+        // })
+    },
+        //   replaceMaterial: function (newMaterial) {
+//     let target = this.data.materialTarget
+//     if (target && target.length == 0) {target=null}
+    
+//     let traverse = (object) => {
+//       let mesh = object
+//       if (mesh.material) {
+//           mapMaterials(mesh, (material) => {         
+//               if (!target || material.name === target) {
+//                   mesh.material = newMaterial
+//               }
+//           })
+//       }
+//       const children = object.children;
+//       for (let i = 0; i < children.length; i++) {
+//           traverse(children[i]);
+//       }
+//     }
+
+//     let replaceMaterials = () => {
+//         // mesh would contain the object that is, or contains, the meshes
+//         var mesh = this.el.object3DMap.mesh
+//         if (!mesh) {
+//             // if no mesh, we'll search through all of the children.  This would
+//             // happen if we dropped the component on a glb in spoke
+//             mesh = this.el.object3D
+//         }
+//         traverse(mesh);
+//        // this.el.removeEventListener("model-loaded", initializer);
+//     }
+
+//     // let root = findAncestorWithComponent(this.el, "gltf-model-plus")
+//     // let initializer = () =>{
+//       if (this.el.components["media-loader"]) {
+//           this.el.addEventListener("media-loaded", replaceMaterials)
+//       } else {
+//           replaceMaterials()
+//       }
+//     // };
+//     //replaceMaterials()
+//     // root.addEventListener("model-loaded", initializer);
+//   },
 
 //   followPortal: function() {
 //     if (this.portalType == 1) {
@@ -246,24 +455,97 @@ AFRAME.registerComponent('portal', {
 //         this.system.teleportTo(this.other.object3D)
 //       }
 //   },
+
+  setupDoor: function() {
+        // attached to an image in spoke.  This is the only way we allow buidling a 
+        // door around it
+        let scaleM = this.el.object3DMap["mesh"].scale
+        let scaleI = this.el.object3D.scale
+        var width = scaleM.x * scaleI.x
+        var height = scaleM.y * scaleI.y
+        var depth = 1.0; //  scaleM.z * scaleI.z
+
+        const environmentMapComponent = this.el.sceneEl.components["environment-map"];
+
+        // let above = new THREE.Mesh(
+        //     new THREE.SphereGeometry(1, 50, 50),
+        //     doormaterialY 
+        // );
+        // if (environmentMapComponent) {
+        //     environmentMapComponent.applyEnvironmentMap(above);
+        // }
+        // above.position.set(0, 2.5, 0)
+        // this.el.object3D.add(above)
+
+        let left = new THREE.Mesh(
+            // new THREE.BoxGeometry(0.1/width,2/height,0.1/depth,2,5,2),
+            new THREE.BoxGeometry(0.1/width,1,0.1/depth,2,5,2),
+            [doorMaterial,doorMaterial,doormaterialY, doormaterialY,doorMaterial,doorMaterial], 
+        );
+
+        if (environmentMapComponent) {
+            environmentMapComponent.applyEnvironmentMap(left);
+        }
+        left.position.set(-0.51, 0, 0)
+        this.el.object3D.add(left)
+
+        let right = new THREE.Mesh(
+            new THREE.BoxGeometry(0.1/width,1,0.1/depth,2,5,2),
+            [doorMaterial,doorMaterial,doormaterialY, doormaterialY,doorMaterial,doorMaterial], 
+        );
+
+        if (environmentMapComponent) {
+            environmentMapComponent.applyEnvironmentMap(right);
+        }
+        right.position.set(0.51, 0, 0)
+        this.el.object3D.add(right)
+
+        let top = new THREE.Mesh(
+            new THREE.BoxGeometry(1 + 0.3/width,0.1/height,0.1/depth,2,5,2),
+            [doormaterialY,doormaterialY,doorMaterial,doorMaterial,doorMaterial,doorMaterial], 
+        );
+
+        if (environmentMapComponent) {
+            environmentMapComponent.applyEnvironmentMap(top);
+        }
+        top.position.set(0.0, 0.505, 0)
+        this.el.object3D.add(top)
+
+        // if (width > 0 && height > 0) {
+        //     const {width: wsize, height: hsize} = this.script.getSize()
+        //     var scale = Math.min(width / wsize, height / hsize)
+        //     this.simpleContainer.setAttribute("scale", { x: scale, y: scale, z: scale});
+        // }
+  },
+
   tick: function (time) {
-    this.material.uniforms.time.value = time / 1000
-        
+    //this.material.uniforms.time.value = time / 1000
+    if (!this.materials) { return }
+
+    this.portalTitle.tick(time)
+    this.portalSubtitle.tick(time)
+
+    this.materials.map((mat) => {
+        mat.userData.radius = this.radius
+        mat.userData.cubeMap = this.cubeMap
+        WarpPortalShader.updateUniforms(time, mat)
+    })
+
     if (this.other && !this.system.teleporting) {
       this.el.object3D.getWorldPosition(worldPos)
-      this.el.sceneEl.camera.getWorldPosition(worldCameraPos)
+      this.el.sceneEl.camera.getWorldPosition(worldCameraPos) - this.Yoffset
       const dist = worldCameraPos.distanceTo(worldPos)
 
-      if (this.portalType == 1 && dist < 1) {
+      if (this.portalType == 1 && dist < 0.5) {
           if (!this.locationhref) {
             console.log("set window.location.href to " + this.other)
             this.locationhref = this.other
             window.location.href = this.other
           }
-      } else if (this.portalType == 2 && dist < 1) {
+      } else if (this.portalType == 2 && dist < 0.5) {
         this.system.teleportTo(this.other.object3D)
       } else if (this.portalType == 3) {
-          if (dist < 1) {
+          if (dist < 0.5) {
             if (!this.locationhref) {
               console.log("set window.location.hash to " + this.other)
               this.locationhref = this.other
@@ -278,6 +560,7 @@ AFRAME.registerComponent('portal', {
       }
     }
   },
+
   getOther: function () {
     return new Promise((resolve) => {
         if (this.portalType == 0) resolve(null)
@@ -344,17 +627,19 @@ AFRAME.registerComponent('portal', {
 
     setRadius(val) {
         this.el.setAttribute('animation__portal', {
-          from: this.material.uniforms.radius.value,
-          to: val,
+        //   from: this.material.uniforms.radius.value,
+            from: this.radius,
+            to: val,
         })
     },
     open() {
         this.setRadius(1)
     },
     close() {
-        this.setRadius(0)
+        this.setRadius(0.2)
     },
     isClosed() {
-        return this.material.uniforms.radius.value === 0
+        // return this.material.uniforms.radius.value === 0
+        return this.radius === 0.2
     },
 })

@@ -11,12 +11,36 @@
           "name": {
             "type": "string",
             "default": ""
-          }
+          },
+          "width" : {
+            "type": "int",
+            "default": 0
+          },
+          "height": {
+            "type": "int",
+            "default": 0
+          },
+          "parameter1": {
+            "type": "string",
+            "default": ""
+          },
+            "parameter2": {
+                "type": "string",
+                "default": ""
+            },  
+            "parameter3": {
+                "type": "string",
+                "default": ""
+            },
+            "parameter4": {
+                "type": "string",
+                "default": ""
+            }
         }
     },
     "portal": {
         "category": "AEL",
-        "nodes": ["Model", "Image"],
+        "nodes": ["Image"],
         "properties": {
             "portalType": { 
                 "type": "string",
@@ -30,6 +54,18 @@
                 "type": "color" 
             },
             "materialTarget": {
+                "type": "string",
+                "default": ""
+            },
+            "drawDoor": {
+                "type": "bool",
+                "default": false
+            },
+            "mainText": {
+                "type": "string",
+                "default": ""
+            },
+            "secondaryText": {
                 "type": "string",
                 "default": ""
             }
@@ -51,10 +87,10 @@
     },
     "region-hider": {
         "category": "AEL",
-        "nodes": ["Scene", "Group", "Image"],
+        "nodes": ["Scene"],
         "properties": {
             "size" : {
-                "type": "integer",
+                "type": "int",
                 "default": 10
             }
         }
@@ -68,6 +104,21 @@
                 "default": ""
             }
         }
+    },
+    "video-control-pad": {
+        "category": "AEL",
+        "nodes": ["Group", "Model", "Image"],
+        "properties": {
+            "target" : {
+                "type": "string",
+                "default": ""
+            },
+            "radius": {
+                "type": "float",
+                "default": 1
+            }
+        }
     }
+
   }
 }

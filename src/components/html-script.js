@@ -42,11 +42,26 @@ import * as htmlComponents from "https://resources.realitymedia.digital/vue-apps
 AFRAME.registerComponent('html-script', {
     schema: {
         // name must follow the pattern "*_componentName"
-        name: { type: "string", default: ""}
+        name: { type: "string", default: ""},
+        width: { type: "number", default: -1},
+        height: { type: "number", default: -1},
+        parameter1: { type: "string", default: ""},
+        parameter2: { type: "string", default: ""},
+        parameter3: { type: "string", default: ""},
+        parameter4: { type: "string", default: ""},
     },
     init: function () {
         this.script = null;
         this.fullName = this.data.name;
+
+        this.scriptData = {
+            width: this.data.width,
+            height: this.data.height,
+            parameter1: this.data.parameter1,
+            parameter2: this.data.parameter2,
+            parameter3: this.data.parameter3,
+            parameter4: this.data.parameter4
+        }
 
         if (!this.fullName || this.fullName.length == 0) {
             this.parseNodeName();
@@ -498,7 +513,7 @@ AFRAME.registerComponent('html-script', {
             this.script = null
             return;
         }
-        this.script = initScript()
+        this.script = initScript(this.scriptData)
         if (this.script){
             this.script.needsUpdate = true
             // this.script.webLayer3D.refresh(true)
@@ -550,7 +565,7 @@ AFRAME.registerComponent('script-data', {
         this.changed = !(this.sharedData === this.data.scriptdata);
         if (this.changed) {
             try {
-                this.dataObject = JSON.parse(decodeURIComponent(this.data.scriptdata))
+                this.dataObject = JSON.parse(decodeURIComponent(this.scriptData))
 
                 // do these after the JSON parse to make sure it has succeeded
                 this.sharedData = this.data.scriptdata;
