@@ -216,6 +216,7 @@ AFRAME.registerComponent('portal', {
   schema: {
     portalType: { default: "" },
     portalTarget: { default: "" },
+    secondaryTarget: { default: "" },
     color: { type: 'color', default: null },
     materialTarget: { type: 'string', default: null },
     drawDoor: { type: 'boolean', default: false },
@@ -378,17 +379,21 @@ AFRAME.registerComponent('portal', {
         this.el.addEventListener('proximityenter', () => this.open())
         this.el.addEventListener('proximityleave', () => this.close())
     
-        this.scriptData = {
+        var titleScriptData = {
             width: 300,
             height: 50,
             message: this.data.mainText
         }
+        var subtitleScriptData = {
+            width: 300,
+            height: 50,
+            message: this.data.secondaryText
+        }
         const portalTitle = htmlComponents["PortalTitle"]
-        this.scriptData.message = this.data.secondaryText
         const portalSubtitle = htmlComponents["PortalSubtitle"]
 
-        this.portalTitle = portalTitle(this.scriptData)
-        this.portalSubtitle = portalSubtitle(this.scriptData)
+        this.portalTitle = portalTitle(titleScriptData)
+        this.portalSubtitle = portalSubtitle(subtitleScriptData)
 
         this.el.setObject3D('portalTitle', this.portalTitle.webLayer3D)
         this.portalTitle.webLayer3D.position.y = 0.75
@@ -566,7 +571,13 @@ AFRAME.registerComponent('portal', {
         if (this.portalType == 0) resolve(null)
         if (this.portalType  == 1) {
             // the target is another room, resolve with the URL to the room
-            this.system.getRoomURL(this.portalTarget).then(url => { resolve(url) })
+            this.system.getRoomURL(this.portalTarget).then(url => { 
+                if (this.data.secondaryTarget && this.data.secondaryTarget.length > 0) {
+                    resolve(url + "#" + this.data.secondaryTarget)
+                } else {
+                    resolve(url) 
+                }
+            })
         }
         if (this.portalType == 3) {
             resolve ("#" + this.portalTarget)

@@ -50,6 +50,10 @@
                 "type": "string",
                 "default": "" 
             },
+            "secondaryTarget": { 
+                "type": "string",
+                "default": "" 
+            },
             "color": { 
                 "type": "color" 
             },
