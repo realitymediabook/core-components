@@ -24,7 +24,27 @@ AFRAME.GLTFModelPlus.registerComponent('video-control-pad', 'video-control-pad')
 //  var videoComp = AFRAME.components["media-video"]
 //  videoComp.Component.prototype.isMineOrLocal = myisMineOrLocal;
 
-let homePageDesc = document.querySelector('[class^="HomePage__app-description"]')
-if (homePageDesc) {
-    homePageDesc.innerHTML = "Reality Media Immersive Experience<br><br>After signing in, visit <a href='https://realitymedia.digital'>realitymedia.digital</a> to get started"
+// let homePageDesc = document.querySelector('[class^="HomePage__app-description"]')
+// if (homePageDesc) {
+//     homePageDesc.innerHTML = "Reality Media Immersive Experience<br><br>After signing in, visit <a href='https://realitymedia.digital'>realitymedia.digital</a> to get started"
+// }
+
+
+function hideLobbySphere() {
+    // @ts-ignore
+    window.APP.scene.addEventListener('stateadded', function(evt:CustomEvent) { 
+        if (evt.detail === 'entered') {
+            // @ts-ignore
+            var lobbySphere = window.APP.scene.object3D.getObjectByName('lobbySphere')
+            if (lobbySphere) {
+                lobbySphere.visible = false
+            }
+        }
+    });
+}
+
+if (document.readyState === 'complete') {
+    hideLobbySphere();
+} else {
+    document.addEventListener('DOMContentLoaded', hideLobbySphere);
 }
