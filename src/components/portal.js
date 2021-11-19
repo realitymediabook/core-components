@@ -31,6 +31,8 @@ import goldgloss from '../assets/Metal_Gold_Foil_002_glossiness.png'
 import goldnorm from '../assets/Metal_Gold_Foil_002_NRM.jpg'
 import goldao from '../assets/Metal_Gold_Foil_002_OCC.jpg'
 
+import CubeCameraWriter from "../utils/writeCubeMap.js";
+
 import { Marble1Shader } from '../shaders/marble1'
 import { replaceMaterial as replaceWithShader} from './shader'
 
@@ -213,113 +215,115 @@ AFRAME.registerSystem('portal', {
 })
 
 AFRAME.registerComponent('portal', {
-  schema: {
-    portalType: { default: "" },
-    portalTarget: { default: "" },
-    secondaryTarget: { default: "" },
-    color: { type: 'color', default: null },
-    materialTarget: { type: 'string', default: null },
-    drawDoor: { type: 'boolean', default: false },
-    mainText: { type: 'string', default: null},
-    secondaryText: { type: 'string', default: null}
-  },
-  init: function () {
+    schema: {
+        portalType: { default: "" },
+        portalTarget: { default: "" },
+        secondaryTarget: { default: "" },
+        color: { type: 'color', default: null },
+        materialTarget: { type: 'string', default: null },
+        drawDoor: { type: 'boolean', default: false },
+        text: { type: 'string', default: null},
+        textPosition: { type: 'vec3' },
+        textSize: { type: 'vec2' },
+        textScale: { type: 'number', default: 1 }
+    },
 
-    // TESTING
-    //this.data.drawDoor = true
-    // this.data.mainText = "Portal to the Abyss"
-    // this.data.secondaryText = "To visit the Abyss, go through the door!"
+    init: function () {
+        // TESTING
+        //this.data.drawDoor = true
+        // this.data.mainText = "Portal to the Abyss"
+        // this.data.secondaryText = "To visit the Abyss, go through the door!"
 
-    // A-Frame is supposed to do this by default but doesn't seem to?
-    this.system = window.APP.scene.systems.portal 
+        // A-Frame is supposed to do this by default but doesn't seem to?
+        this.system = window.APP.scene.systems.portal 
 
-    if (this.data.portalType.length > 0 ) {
-        this.setPortalInfo(this.data.portalType, this.data.portalTarget, this.data.color)
-    } else {
-        this.portalType = 0
-    }
+        if (this.data.portalType.length > 0 ) {
+            this.setPortalInfo(this.data.portalType, this.data.portalTarget, this.data.color)
+        } else {
+            this.portalType = 0
+        }
 
-    if (this.portalType == 0) {
-        // parse the name to get portal type, target, and color
-        this.parseNodeName()
-    }
-    
-    // wait until the scene loads to finish.  We want to make sure everything
-    // is initialized
-    let root = findAncestorWithComponent(this.el, "gltf-model-plus")
-    root.addEventListener("model-loaded", (ev) => { 
-        this.initialize()
-    });
-  },
+        if (this.portalType == 0) {
+            // parse the name to get portal type, target, and color
+            this.parseNodeName()
+        }
+        
+        // wait until the scene loads to finish.  We want to make sure everything
+        // is initialized
+        let root = findAncestorWithComponent(this.el, "gltf-model-plus")
+        root.addEventListener("model-loaded", (ev) => { 
+            this.initialize()
+        });
+    },
 
-  initialize: async function () {
-    // this.material = new THREE.ShaderMaterial({
-    //   transparent: true,
-    //   side: THREE.DoubleSide,
-    //   uniforms: {
-    //     cubeMap: { value: new THREE.Texture() },
-    //     time: { value: 0 },
-    //     radius: { value: 0 },
-    //     ringColor: { value: this.color },
-    //   },
-    //   vertexShader,
-    //   fragmentShader: `
-    //     ${snoise}
-    //     ${fragmentShader}
-    //   `,
-    // })
+    initialize: async function () {
+        // this.material = new THREE.ShaderMaterial({
+        //   transparent: true,
+        //   side: THREE.DoubleSide,
+        //   uniforms: {
+        //     cubeMap: { value: new THREE.Texture() },
+        //     time: { value: 0 },
+        //     radius: { value: 0 },
+        //     ringColor: { value: this.color },
+        //   },
+        //   vertexShader,
+        //   fragmentShader: `
+        //     ${snoise}
+        //     ${fragmentShader}
+        //   `,
+        // })
 
-    // Assume that the object has a plane geometry
-    //const mesh = this.el.getOrCreateObject3D('mesh')
-    //mesh.material = this.material
+        // Assume that the object has a plane geometry
+        //const mesh = this.el.getOrCreateObject3D('mesh')
+        //mesh.material = this.material
 
-    this.materials = null
-    this.radius = 0.2
-    this.cubeMap = new THREE.CubeTexture()
+        this.materials = null
+        this.radius = 0.2
+        this.cubeMap = new THREE.CubeTexture()
 
-    // get the other before continuing
-    this.other = await this.getOther()
+        // get the other before continuing
+        this.other = await this.getOther()
 
-    this.el.setAttribute('animation__portal', {
-        property: 'components.portal.radius',
-        dur: 700,
-        easing: 'easeInOutCubic',
-    })
+        this.el.setAttribute('animation__portal', {
+            property: 'components.portal.radius',
+            dur: 700,
+            easing: 'easeInOutCubic',
+        })
 
-    // this.el.addEventListener('animationbegin', () => (this.el.object3D.visible = true))
-    // this.el.addEventListener('animationcomplete__portal', () => (this.el.object3D.visible = !this.isClosed()))
+        // this.el.addEventListener('animationbegin', () => (this.el.object3D.visible = true))
+        // this.el.addEventListener('animationcomplete__portal', () => (this.el.object3D.visible = !this.isClosed()))
 
-    // going to want to try and make the object this portal is on clickable
-    // this.el.setAttribute('is-remote-hover-target','')
-    // this.el.setAttribute('tags', {singleActionButton: true})
-    //this.el.setAttribute('class', "interactable")
-    // orward the 'interact' events to our portal movement 
-    //this.followPortal = this.followPortal.bind(this)
-    //this.el.object3D.addEventListener('interact', this.followPortal)
+        // going to want to try and make the object this portal is on clickable
+        // this.el.setAttribute('is-remote-hover-target','')
+        // this.el.setAttribute('tags', {singleActionButton: true})
+        //this.el.setAttribute('class', "interactable")
+        // orward the 'interact' events to our portal movement 
+        //this.followPortal = this.followPortal.bind(this)
+        //this.el.object3D.addEventListener('interact', this.followPortal)
 
-    if ( this.el.components["media-loader"] || this.el.components["media-image"] ) {
-        if (this.el.components["media-loader"]) {
-            let fn = () => {
-                this.setupPortal();
+        if ( this.el.components["media-loader"] || this.el.components["media-image"] ) {
+            if (this.el.components["media-loader"]) {
+                let fn = () => {
+                    this.setupPortal();
+                    if (this.data.drawDoor) {
+                        this.setupDoor();
+                    }
+                    this.el.removeEventListener('model-loaded', fn)
+                 }
+                this.el.addEventListener("media-loaded", fn)
+            } else {
+                this.setupPortal()
                 if (this.data.drawDoor) {
                     this.setupDoor();
                 }
-                this.el.removeEventListener('model-loaded', fn)
-             }
-            this.el.addEventListener("media-loaded", fn)
+            }
         } else {
             this.setupPortal()
             if (this.data.drawDoor) {
                 this.setupDoor();
             }
-    }
-    } else {
-        this.setupPortal()
-        if (this.data.drawDoor) {
-            this.setupDoor();
         }
-    }
-  },
+    },
 
     setupPortal: function () {
         let target = this.data.materialTarget
@@ -345,7 +349,7 @@ AFRAME.registerComponent('portal', {
                 }).catch(e => console.error(e))    
             })
         } else if (this.portalType == 2 || this.portalType == 3) {    
-            this.cubeCamera = new THREE.CubeCamera(0.1, 1000, 1000)
+            this.cubeCamera = new CubeCameraWriter(0.1, 1000, 512)
             //this.cubeCamera.rotateY(Math.PI) // Face forwards
             if (this.portalType == 2) {
                 this.el.object3D.add(this.cubeCamera)
@@ -358,7 +362,7 @@ AFRAME.registerComponent('portal', {
                     waypoint = waypoint.item(0)
                     this.cubeCamera.position.y = 1.6
                     this.cubeCamera.needsUpdate = true
-                        waypoint.object3D.add(this.cubeCamera)
+                    waypoint.object3D.add(this.cubeCamera)
                     // this.material.uniforms.cubeMap.value = this.cubeCamera.renderTarget.texture;
                     //this.materials.map((mat) => {mat.userData.cubeMap = this.cubeCamera.renderTarget.texture;})
                     this.cubeMap = this.cubeCamera.renderTarget.texture
@@ -371,37 +375,44 @@ AFRAME.registerComponent('portal', {
             })
         }
 
-        let scaleM = this.el.object3DMap["mesh"].scale
-        let scaleI = this.el.object3D.scale
-        this.Yoffset = -(scaleM.y * scaleI.y / 2) + 1.6
+        // offset to center of portal assuming walking on ground
+        this.Yoffset = -(this.el.object3D.position.y - 1.6)
 
         this.el.setAttribute('proximity-events', { radius: 4, Yoffset: this.Yoffset })
         this.el.addEventListener('proximityenter', () => this.open())
         this.el.addEventListener('proximityleave', () => this.close())
     
         var titleScriptData = {
-            width: 300,
-            height: 50,
-            message: this.data.mainText
-        }
-        var subtitleScriptData = {
-            width: 300,
-            height: 50,
-            message: this.data.secondaryText
+            width: this.data.textSize.x,
+            height: this.data.textSize.y,
+            message: this.data.text
         }
         const portalTitle = htmlComponents["PortalTitle"]
-        const portalSubtitle = htmlComponents["PortalSubtitle"]
+        // const portalSubtitle = htmlComponents["PortalSubtitle"]
 
         this.portalTitle = portalTitle(titleScriptData)
-        this.portalSubtitle = portalSubtitle(subtitleScriptData)
+        // this.portalSubtitle = portalSubtitle(subtitleScriptData)
 
         this.el.setObject3D('portalTitle', this.portalTitle.webLayer3D)
-        this.portalTitle.webLayer3D.position.y = 0.75
-        this.el.setObject3D('portalSubtitle', this.portalSubtitle.webLayer3D)
-        this.portalSubtitle.webLayer3D.position.x = 1
+
+        let size = this.portalTitle.getSize()
+        let scaleM = this.el.object3DMap["mesh"].scale
+        let scaleI = this.el.object3D.scale
+        let scaleX = (scaleM.x * scaleI.x) / this.data.textScale
+        let scaleY = (scaleM.y * scaleI.y) / this.data.textScale
+        let scaleZ = (scaleM.y * scaleI.y) / this.data.textScale
+ 
+        this.portalTitle.webLayer3D.scale.x /= scaleX
+        this.portalTitle.webLayer3D.scale.y /= scaleY
+
+        this.portalTitle.webLayer3D.position.x = this.data.textPosition.x / scaleX
+        this.portalTitle.webLayer3D.position.y = 0.5 + size.height / 2 + this.data.textPosition.y / scaleY
+        this.portalTitle.webLayer3D.position.z = this.data.textPosition.z / scaleZ
+        // this.el.setObject3D('portalSubtitle', this.portalSubtitle.webLayer3D)
+        // this.portalSubtitle.webLayer3D.position.x = 1
         this.el.setObject3D.matrixAutoUpdate = true
         this.portalTitle.webLayer3D.matrixAutoUpdate = true
-        this.portalSubtitle.webLayer3D.matrixAutoUpdate = true
+        // this.portalSubtitle.webLayer3D.matrixAutoUpdate = true
 
         // this.materials.map((mat) => {
         //     mat.userData.radius = this.radius
@@ -461,7 +472,7 @@ AFRAME.registerComponent('portal', {
 //       }
 //   },
 
-  setupDoor: function() {
+    setupDoor: function() {
         // attached to an image in spoke.  This is the only way we allow buidling a 
         // door around it
         let scaleM = this.el.object3DMap["mesh"].scale
@@ -521,82 +532,86 @@ AFRAME.registerComponent('portal', {
         //     var scale = Math.min(width / wsize, height / hsize)
         //     this.simpleContainer.setAttribute("scale", { x: scale, y: scale, z: scale});
         // }
-  },
+    },
 
-  tick: function (time) {
-    //this.material.uniforms.time.value = time / 1000
-    if (!this.materials) { return }
+    tick: function (time) {
+        //this.material.uniforms.time.value = time / 1000
+        if (!this.materials) { return }
 
-    this.portalTitle.tick(time)
-    this.portalSubtitle.tick(time)
+        this.portalTitle.tick(time)
+        // this.portalSubtitle.tick(time)
 
-    this.materials.map((mat) => {
-        mat.userData.radius = this.radius
-        mat.userData.cubeMap = this.cubeMap
-        WarpPortalShader.updateUniforms(time, mat)
-    })
+        this.materials.map((mat) => {
+            mat.userData.radius = this.radius
+            mat.userData.cubeMap = this.cubeMap
+            WarpPortalShader.updateUniforms(time, mat)
+        })
 
-    if (this.other && !this.system.teleporting) {
-      this.el.object3D.getWorldPosition(worldPos)
-      this.el.sceneEl.camera.getWorldPosition(worldCameraPos) - this.Yoffset
-      const dist = worldCameraPos.distanceTo(worldPos)
+        if (this.other && !this.system.teleporting) {
+          this.el.object3D.getWorldPosition(worldPos)
+          this.el.sceneEl.camera.getWorldPosition(worldCameraPos)
+          worldCameraPos.y -= this.Yoffset
+          const dist = worldCameraPos.distanceTo(worldPos)
 
-      if (this.portalType == 1 && dist < 0.5) {
-          if (!this.locationhref) {
-            console.log("set window.location.href to " + this.other)
-            this.locationhref = this.other
-            window.location.href = this.other
-          }
-      } else if (this.portalType == 2 && dist < 0.5) {
-        this.system.teleportTo(this.other.object3D)
-      } else if (this.portalType == 3) {
-          if (dist < 0.5) {
-            if (!this.locationhref) {
-              console.log("set window.location.hash to " + this.other)
-              this.locationhref = this.other
-              window.location.hash = this.other
-            }
-          } else {
-              // if we set locationhref, we teleported.  when it
-              // finally happens, and we move outside the range of the portal,
-              // we will clear the flag
-              this.locationhref = null
-          }
-      }
-    }
-  },
-
-  getOther: function () {
-    return new Promise((resolve) => {
-        if (this.portalType == 0) resolve(null)
-        if (this.portalType  == 1) {
-            // the target is another room, resolve with the URL to the room
-            this.system.getRoomURL(this.portalTarget).then(url => { 
-                if (this.data.secondaryTarget && this.data.secondaryTarget.length > 0) {
-                    resolve(url + "#" + this.data.secondaryTarget)
-                } else {
-                    resolve(url) 
+          if (this.portalType == 1 && dist < 0.5) {
+              if (!this.locationhref) {
+                console.log("set window.location.href to " + this.other)
+                this.locationhref = this.other
+                window.location.href = this.other
+              }
+          } else if (this.portalType == 2 && dist < 0.5) {
+            this.system.teleportTo(this.other.object3D)
+          } else if (this.portalType == 3) {
+              if (dist < 0.5) {
+                if (!this.locationhref) {
+                  console.log("set window.location.hash to " + this.other)
+                  this.locationhref = this.other
+                  window.location.hash = this.other
                 }
-            })
+              } else {
+                  // if we set locationhref, we teleported.  when it
+                  // finally happens, and we move outside the range of the portal,
+                  // we will clear the flag
+                  this.locationhref = null
+              }
+          }
         }
-        if (this.portalType == 3) {
-            resolve ("#" + this.portalTarget)
-        }
+      },
 
-        // now find the portal within the room.  The portals should come in pairs with the same portalTarget
-        const portals = Array.from(document.querySelectorAll(`[portal]`))
-        const other = portals.find((el) => el.components.portal.portalType == this.portalType &&
-                                            el.components.portal.portalTarget === this.portalTarget && el !== this.el)
-        if (other !== undefined) {
-            // Case 1: The other portal already exists
-            resolve(other);
-            other.emit('pair', { other: this.el }) // Let the other know that we're ready
-        } else {
-            // Case 2: We couldn't find the other portal, wait for it to signal that it's ready
-            this.el.addEventListener('pair', (event) => resolve(event.detail.other), { once: true })
-        }
-    })
-  },
+    getOther: function () {
+        return new Promise((resolve) => {
+            if (this.portalType == 0) resolve(null)
+            if (this.portalType  == 1) {
+                // the target is another room, resolve with the URL to the room
+                this.system.getRoomURL(this.portalTarget).then(url => { 
+                    if (this.data.secondaryTarget && this.data.secondaryTarget.length > 0) {
+                        resolve(url + "#" + this.data.secondaryTarget)
+                    } else {
+                        resolve(url) 
+                    }
+                })
+            }
+            if (this.portalType == 3) {
+                resolve ("#" + this.portalTarget)
+            }
+
+            // now find the portal within the room.  The portals should come in pairs with the same portalTarget
+            const portals = Array.from(document.querySelectorAll(`[portal]`))
+            const other = portals.find((el) => el.components.portal.portalType == this.portalType &&
+                          el.components.portal.portalTarget === this.portalTarget && 
+                          el !== this.el)
+            if (other !== undefined) {
+                // Case 1: The other portal already exists
+                resolve(other);
+                other.emit('pair', { other: this.el }) // Let the other know that we're ready
+            } else {
+                // Case 2: We couldn't find the other portal, wait for it to signal that it's ready
+                this.el.addEventListener('pair', (event) => { 
+                    resolve(event.detail.other)
+                }, { once: true })
+            }
+        })
+    },
 
     parseNodeName: function () {
         const nodeName = this.el.parentEl.parentEl.className

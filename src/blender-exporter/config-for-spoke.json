@@ -65,13 +65,21 @@
                 "type": "bool",
                 "default": false
             },
-            "mainText": {
+            "text": {
                 "type": "string",
                 "default": ""
             },
-            "secondaryText": {
-                "type": "string",
-                "default": ""
+            "textSize": {
+                "type": "vec2",
+                "default": { "x": 400, "y": 100 }
+            },
+            "textPosition": {
+                "type": "vec3",
+                "default": { "x": 0, "y": 0, "z": 0 }
+            },
+            "textScale" : {
+                "type": "int",
+                "default": 1
             }
         }
     },
