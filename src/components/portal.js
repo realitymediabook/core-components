@@ -357,7 +357,7 @@ AFRAME.registerComponent('portal', {
                 }).catch(e => console.error(e))    
             })
         } else if (this.portalType == 2 || this.portalType == 3) {    
-            this.cubeCamera = new CubeCameraWriter(0.1, 1000, 512)
+            this.cubeCamera = new CubeCameraWriter(0.1, 1000, 1024)
             //this.cubeCamera.rotateY(Math.PI) // Face forwards
             if (this.portalType == 2) {
                 this.el.object3D.add(this.cubeCamera)

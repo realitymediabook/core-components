@@ -1,4 +1,4 @@
-let SIZE = 512
+let SIZE = 1024
 let TARGETWIDTH = SIZE
 let TARGETHEIGHT = SIZE
 
@@ -13,14 +13,14 @@ window.APP.writeWayPointTextures = function(names) {
             if (waypoints[i].components.waypoint) {
                 let cubecam = null
                 // 
-                for (let j = 0; j < waypoints[i].object3D.children.length; j++) {
-                    if (waypoints[i].object3D.children[j] instanceof CubeCameraWriter) {
-                        console.log("found waypoint with cubeCamera '" + names[k] + "'")
-                        cubecam = waypoints[i].object3D.children[j]
-                        break;
-                    }
-                }
-                if (!cubecam) {
+                // for (let j = 0; j < waypoints[i].object3D.children.length; j++) {
+                //     if (waypoints[i].object3D.children[j] instanceof CubeCameraWriter) {
+                //         console.log("found waypoint with cubeCamera '" + names[k] + "'")
+                //         cubecam = waypoints[i].object3D.children[j]
+                //         break;
+                //     }
+                // }
+                // if (!cubecam) {
                     console.log("didn't find waypoint with cubeCamera '" + names[k] + "', creating one.")                    // create a cube map camera and render the view!
                     cubecam = new CubeCameraWriter(0.1, 1000, SIZE)
                     cubecam.position.y = 1.6
@@ -28,9 +28,10 @@ window.APP.writeWayPointTextures = function(names) {
                     waypoints[i].object3D.add(cubecam)
                     cubecam.update(window.APP.scene.renderer, 
                                    window.APP.scene.object3D)
-                }                
+                // }                
 
                 cubecam.saveCubeMapSides(names[k])
+                waypoints[i].object3D.remove(cubecam)
                 break;
             }
         }
@@ -46,7 +47,48 @@ class CubeCameraWriter extends THREE.CubeCamera {
         this.canvas.width = TARGETWIDTH;
         this.canvas.height = TARGETHEIGHT;
         this.ctx = this.canvas.getContext('2d');
-    }      
+        // this.renderTarget.texture.generateMipmaps = true;
+        // this.renderTarget.texture.minFilter = THREE.LinearMipMapLinearFilter;
+        // this.renderTarget.texture.magFilter = THREE.LinearFilter;
+
+        // this.update = function( renderer, scene ) {
+
+        //     let [ cameraPX, cameraNX, cameraPY, cameraNY, cameraPZ, cameraNZ ] = this.children;
+
+    	// 	if ( this.parent === null ) this.updateMatrixWorld();
+
+    	// 	if ( this.parent === null ) this.updateMatrixWorld();
+
+    	// 	var currentRenderTarget = renderer.getRenderTarget();
+
+    	// 	var renderTarget = this.renderTarget;
+    	// 	//var generateMipmaps = renderTarget.texture.generateMipmaps;
+
+    	// 	//renderTarget.texture.generateMipmaps = false;
+
+    	// 	renderer.setRenderTarget( renderTarget, 0 );
+    	// 	renderer.render( scene, cameraPX );
+
+    	// 	renderer.setRenderTarget( renderTarget, 1 );
+    	// 	renderer.render( scene, cameraNX );
+
+    	// 	renderer.setRenderTarget( renderTarget, 2 );
+    	// 	renderer.render( scene, cameraPY );
+
+    	// 	renderer.setRenderTarget( renderTarget, 3 );
+    	// 	renderer.render( scene, cameraNY );
+
+    	// 	renderer.setRenderTarget( renderTarget, 4 );
+    	// 	renderer.render( scene, cameraPZ );
+
+    	// 	//renderTarget.texture.generateMipmaps = generateMipmaps;
+
+    	// 	renderer.setRenderTarget( renderTarget, 5 );
+    	// 	renderer.render( scene, cameraNZ );
+
+    	// 	renderer.setRenderTarget( currentRenderTarget );
+        // };
+	}
 
     saveCubeMapSides(slug) {
         for (let i = 0; i < 6; i++) {
