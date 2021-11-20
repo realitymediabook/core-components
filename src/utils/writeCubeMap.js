@@ -1,5 +1,6 @@
-let TARGETWIDTH = 512
-let TARGETHEIGHT = 512
+let SIZE = 512
+let TARGETWIDTH = SIZE
+let TARGETHEIGHT = SIZE
 
 window.APP.writeWayPointTextures = function(names) {
     if ( !Array.isArray( names ) ) {
@@ -21,7 +22,7 @@ window.APP.writeWayPointTextures = function(names) {
                 }
                 if (!cubecam) {
                     console.log("didn't find waypoint with cubeCamera '" + names[k] + "', creating one.")                    // create a cube map camera and render the view!
-                    cubecam = new CubeCameraWriter(0.1, 1000, 512)
+                    cubecam = new CubeCameraWriter(0.1, 1000, SIZE)
                     cubecam.position.y = 1.6
                     cubecam.needsUpdate = true
                     waypoints[i].object3D.add(cubecam)
@@ -77,6 +78,8 @@ class CubeCameraWriter extends THREE.CubeCamera {
         imageData = new ImageData(new Uint8ClampedArray(pixels4), TARGETWIDTH, TARGETHEIGHT);
 
         // Copy pixels into canvas.
+
+        // could use drawImage instead, to scale, if we want
         this.ctx.putImageData(imageData, 0, 0);
     }
 

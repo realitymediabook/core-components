@@ -189,9 +189,17 @@ AFRAME.registerSystem('portal', {
       let url = window.SSO.userInfo.rooms.length > number ? "https://xr.realitymedia.digital/" + window.SSO.userInfo.rooms[number] : null;
       return url
   },
-  getCubeMap: async function (number) {
+  getCubeMap: async function (number, waypoint) {
       this.waitForFetch()
-      return this.roomData.cubemaps.length > number ? this.roomData.cubemaps[number] : null;
+
+      if (!waypoint || waypoint.length == 0) {
+          waypoint = "start"
+      }
+      let urls = ["Right","Left","Top","Bottom","Front","Back"].map(el => {
+          return "https://resources.realitymedia.digital/data/roomPanos/" + number.toString() + "/" + waypoint + "-" + el + ".png"
+      })
+      return urls
+      //return this.roomData.cubemaps.length > number ? this.roomData.cubemaps[number] : null;
   },
   waitForFetch: function () {
      if (this.roomData && window.SSO.userInfo) return
@@ -337,7 +345,7 @@ AFRAME.registerComponent('portal', {
         })
 
         if (this.portalType == 1) {
-            this.system.getCubeMap(this.portalTarget).then( urls => {
+            this.system.getCubeMap(this.portalTarget, this.data.secondaryTarget).then( urls => {
                 //const urls = [cubeMapPosX, cubeMapNegX, cubeMapPosY, cubeMapNegY, cubeMapPosZ, cubeMapNegZ];
                 const texture = new Promise((resolve, reject) =>
                   new THREE.CubeTextureLoader().load(urls, resolve, undefined, reject)
@@ -371,6 +379,8 @@ AFRAME.registerComponent('portal', {
             this.el.sceneEl.addEventListener('model-loaded', () => {
                 showRegionForObject(this.el)
                 this.cubeCamera.update(this.el.sceneEl.renderer, this.el.sceneEl.object3D)
+                // this.cubeCamera.renderTarget.texture.generateMipmaps = true
+                // this.cubeCamera.renderTarget.texture.needsUpdate = true
                 hiderRegionForObject(this.el)
             })
         }

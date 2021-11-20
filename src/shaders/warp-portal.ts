@@ -15,7 +15,8 @@ const uniforms = {
     portalTime: { value: 0 },
     portalRadius: { value: 0.5 },
     portalRingColor: { value: new THREE.Color("red")  },
-    invertWarpColor: { value: 0 }
+    invertWarpColor: { value: 0 },
+    texInvSize: { value: new THREE.Vector2(1,1) }
 } 
 
 interface ExtraBits {
@@ -27,8 +28,8 @@ let cubeMap = new THREE.CubeTexture()
 const loader = new THREE.TextureLoader()
 var warpTex: THREE.Texture
 loader.load(warpfx, (warp) => {
-    warp.minFilter = THREE.NearestFilter;
-    warp.magFilter = THREE.NearestFilter;
+    warp.minFilter = THREE.NearestMipmapNearestFilter;
+    warp.magFilter = THREE.NearestMipmapNearestFilter;
     warp.wrapS = THREE.RepeatWrapping;
     warp.wrapT = THREE.RepeatWrapping;
     warpTex = warp
@@ -56,7 +57,7 @@ let WarpPortalShader: ShaderExtension = {
         portalNormal = normalize(-1. * vRay);
         //float portal_dist = length(cameraLocal);
         float portal_dist = length(vRay);
-        vRay.z *= 1.3 / (1. + pow(portal_dist, 0.5)); // Change FOV by squashing local Z direction
+        vRay.z *= 1.1 / (1. + pow(portal_dist, 0.5)); // Change FOV by squashing local Z direction
       `
     },
 
@@ -68,6 +69,8 @@ let WarpPortalShader: ShaderExtension = {
         uniform vec3 portalRingColor;
         uniform float portalTime;
         uniform int invertWarpColor;
+
+        uniform vec2 texInvSize;
 
         varying vec3 vRay;
         varying vec3 portalNormal;
@@ -129,6 +132,12 @@ let WarpPortalShader: ShaderExtension = {
           vec3 portal_ray = mix(vRay, portal_tangentOutward, portal_distortion);
 
           vec4 myCubeTexel = textureCube(portalCubeMap, portal_ray);
+
+        //   myCubeTexel += textureCube(portalCubeMap, normalize(vec3(portal_ray.x - texInvSize.s, portal_ray.yz))) / 8.0;        
+        //   myCubeTexel += textureCube(portalCubeMap, normalize(vec3(portal_ray.x - texInvSize.s, portal_ray.yz))) / 8.0;        
+        //   myCubeTexel += textureCube(portalCubeMap, normalize(vec3(portal_ray.x, portal_ray.y - texInvSize.t, portal_ray.z))) / 8.0;        
+        //   myCubeTexel += textureCube(portalCubeMap, normalize(vec3(portal_ray.x, portal_ray.y - texInvSize.t, portal_ray.z))) / 8.0;        
+
           myCubeTexel = mapTexelToLinear( myCubeTexel );
 
         //   vec4 posCol = vec4(smoothstep(-6.0, 6.0, cameraLocal), 1.0); //normalize((cameraLocal / 6.0));
@@ -158,7 +167,7 @@ let WarpPortalShader: ShaderExtension = {
         material.userData.timeOffset = (Math.random()+0.5) * 10
 
         material.uniforms.warpTex.value = warpTex
-        
+
         // we seem to want to flip the flipY
         material.uniforms.warpTime = { value: 0 }
         material.uniforms.portalTime = { value: 0 }
@@ -174,6 +183,13 @@ let WarpPortalShader: ShaderExtension = {
         material.uniforms.warpTex.value = warpTex
         material.uniforms.portalCubeMap.value = material.userData.cubeMap ? material.userData.cubeMap : cubeMap 
         material.uniforms.portalRadius.value = material.userData.radius ? material.userData.radius : 0.5
+
+        if (material.userData.cubeMap && Array.isArray(material.userData.cubeMap.images) && material.userData.cubeMap.images[0]) {
+            let height = material.userData.cubeMap.images[0].height
+            let width = material.userData.cubeMap.images[0].width
+            material.uniforms.texInvSize.value: new THREE.Vector2(width, height);
+        }
+
     }
 }
 
