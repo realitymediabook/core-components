@@ -600,6 +600,7 @@ AFRAME.registerComponent('portal', {
                         resolve(url) 
                     }
                 })
+                return
             }
             if (this.portalType == 3) {
                 resolve ("#" + this.portalTarget)

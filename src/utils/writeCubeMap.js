@@ -115,7 +115,7 @@ class CubeCameraWriter extends THREE.CubeCamera {
 
         renderer.readRenderTargetPixels(this.renderTarget, 0, 0, TARGETWIDTH,TARGETHEIGHT, pixels3, cubeSide);
 
-        pixels3 = this.flipPixelsVertically(pixels3, TARGETWIDTH, TARGETHEIGHT);
+        //pixels3 = this.flipPixelsVertically(pixels3, TARGETWIDTH, TARGETHEIGHT);
         var pixels4 = this.convert3to4(pixels3, TARGETWIDTH, TARGETHEIGHT);
         imageData = new ImageData(new Uint8ClampedArray(pixels4), TARGETWIDTH, TARGETHEIGHT);
 
@@ -129,9 +129,9 @@ class CubeCameraWriter extends THREE.CubeCamera {
         var flippedPixels = pixels.slice(0);
         for (var x = 0; x < width; ++x) {
           for (var y = 0; y < height; ++y) {
-            flippedPixels[x * 3 + y * width * 3] = pixels[x * 3 + (height - y) * width * 3];
-            flippedPixels[x * 3 + 1 + y * width * 3] = pixels[x * 3 + 1 + (height - y) * width * 3];
-            flippedPixels[x * 3 + 2 + y * width * 3] = pixels[x * 3 + 2 + (height - y) * width * 3];
+            flippedPixels[x * 3 + y * width * 3] = pixels[x * 3 + (height - y - 1) * width * 3];
+            flippedPixels[x * 3 + 1 + y * width * 3] = pixels[x * 3 + 1 + (height - y - 1) * width * 3];
+            flippedPixels[x * 3 + 2 + y * width * 3] = pixels[x * 3 + 2 + (height - y - 1) * width * 3];
           }
         }
         return flippedPixels;
@@ -142,9 +142,9 @@ class CubeCameraWriter extends THREE.CubeCamera {
 
         for (var x = 0; x < width; ++x) {
           for (var y = 0; y < height; ++y) {
-            newPixels[x * 4 + y * width * 4] = pixels[x * 3 + (height - y) * width * 3];
-            newPixels[x * 4 + 1 + y * width * 4] = pixels[x * 3 + 1 + (height - y) * width * 3];
-            newPixels[x * 4 + 2 + y * width * 4] = pixels[x * 3 + 2 + (height - y) * width * 3];
+            newPixels[x * 4 + y * width * 4] = pixels[x * 3 + y * width * 3];
+            newPixels[x * 4 + 1 + y * width * 4] = pixels[x * 3 + 1 + y * width * 3];
+            newPixels[x * 4 + 2 + y * width * 4] = pixels[x * 3 + 2 + y * width * 3];
             newPixels[x * 4 + 3 + y * width * 4] = 255;
           }
         }
