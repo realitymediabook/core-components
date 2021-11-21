@@ -35,6 +35,7 @@ import CubeCameraWriter from "../utils/writeCubeMap.js";
 
 import { Marble1Shader } from '../shaders/marble1'
 import { replaceMaterial as replaceWithShader} from './shader'
+import { reduceEachTrailingCommentRange } from "typescript";
 
 const worldPos = new THREE.Vector3()
 const worldCameraPos = new THREE.Vector3()
@@ -385,8 +386,18 @@ AFRAME.registerComponent('portal', {
             })
         }
 
+        let scaleM = this.el.object3DMap["mesh"].scale
+        let scaleI = this.el.object3D.scale
+        let scaleX = scaleM.x * scaleI.x
+        let scaleY = scaleM.y * scaleI.y
+        let scaleZ = scaleM.y * scaleI.y
+
+        // this.portalWidth = scaleX / 2
+        // this.portalHeight = scaleY / 2
+
         // offset to center of portal assuming walking on ground
-        this.Yoffset = -(this.el.object3D.position.y - 1.6)
+        // this.Yoffset = -(this.el.object3D.position.y - 1.6)
+        this.Yoffset = -(scaleY/2 - 1.6)
 
         this.el.setAttribute('proximity-events', { radius: 4, Yoffset: this.Yoffset })
         this.el.addEventListener('proximityenter', () => this.open())
@@ -404,20 +415,17 @@ AFRAME.registerComponent('portal', {
         // this.portalSubtitle = portalSubtitle(subtitleScriptData)
 
         this.el.setObject3D('portalTitle', this.portalTitle.webLayer3D)
-
         let size = this.portalTitle.getSize()
-        let scaleM = this.el.object3DMap["mesh"].scale
-        let scaleI = this.el.object3D.scale
-        let scaleX = (scaleM.x * scaleI.x) / this.data.textScale
-        let scaleY = (scaleM.y * scaleI.y) / this.data.textScale
-        let scaleZ = (scaleM.y * scaleI.y) / this.data.textScale
- 
+        let titleScaleX = scaleX / this.data.textScale
+        let titleScaleY = scaleY / this.data.textScale
+        let titleScaleZ = scaleZ / this.data.textScale
+
         this.portalTitle.webLayer3D.scale.x /= scaleX
         this.portalTitle.webLayer3D.scale.y /= scaleY
 
-        this.portalTitle.webLayer3D.position.x = this.data.textPosition.x / scaleX
-        this.portalTitle.webLayer3D.position.y = 0.5 + size.height / 2 + this.data.textPosition.y / scaleY
-        this.portalTitle.webLayer3D.position.z = this.data.textPosition.z / scaleZ
+        this.portalTitle.webLayer3D.position.x = this.data.textPosition.x / titleScaleX
+        this.portalTitle.webLayer3D.position.y = 0.5 + size.height / 2 + this.data.textPosition.y / titleScaleY
+        this.portalTitle.webLayer3D.position.z = this.data.textPosition.z / titleScaleZ
         // this.el.setObject3D('portalSubtitle', this.portalSubtitle.webLayer3D)
         // this.portalSubtitle.webLayer3D.position.x = 1
         this.el.setObject3D.matrixAutoUpdate = true
@@ -558,21 +566,29 @@ AFRAME.registerComponent('portal', {
         })
 
         if (this.other && !this.system.teleporting) {
-          this.el.object3D.getWorldPosition(worldPos)
+        //   this.el.object3D.getWorldPosition(worldPos)
+        //   this.el.sceneEl.camera.getWorldPosition(worldCameraPos)
+        //   worldCameraPos.y -= this.Yoffset
+        //   const dist = worldCameraPos.distanceTo(worldPos)
           this.el.sceneEl.camera.getWorldPosition(worldCameraPos)
-          worldCameraPos.y -= this.Yoffset
-          const dist = worldCameraPos.distanceTo(worldPos)
+          this.el.object3D.worldToLocal(worldCameraPos)
 
-          if (this.portalType == 1 && dist < 0.5) {
+          // in local portal coordinates, the width and height are 1
+          if (Math.abs(worldCameraPos.x) > 0.5 || Math.abs(worldCameraPos.y) > 0.5) {
+            return;
+          }
+          const dist = Math.abs(worldCameraPos.z);
+
+          if (this.portalType == 1 && dist < 0.25) {
               if (!this.locationhref) {
                 console.log("set window.location.href to " + this.other)
                 this.locationhref = this.other
                 window.location.href = this.other
               }
-          } else if (this.portalType == 2 && dist < 0.5) {
+          } else if (this.portalType == 2 && dist < 0.25) {
             this.system.teleportTo(this.other.object3D)
           } else if (this.portalType == 3) {
-              if (dist < 0.5) {
+              if (dist < 0.25) {
                 if (!this.locationhref) {
                   console.log("set window.location.hash to " + this.other)
                   this.locationhref = this.other
