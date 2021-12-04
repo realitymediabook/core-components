@@ -35,7 +35,6 @@ import CubeCameraWriter from "../utils/writeCubeMap.js";
 
 import { Marble1Shader } from '../shaders/marble1'
 import { replaceMaterial as replaceWithShader} from './shader'
-import { reduceEachTrailingCommentRange } from "typescript";
 
 const worldPos = new THREE.Vector3()
 const worldCameraPos = new THREE.Vector3()
@@ -260,7 +259,7 @@ AFRAME.registerComponent('portal', {
         // wait until the scene loads to finish.  We want to make sure everything
         // is initialized
         let root = findAncestorWithComponent(this.el, "gltf-model-plus")
-        root.addEventListener("model-loaded", (ev) => { 
+        root && root.addEventListener("model-loaded", (ev) => { 
             this.initialize()
         });
     },
@@ -298,7 +297,7 @@ AFRAME.registerComponent('portal', {
             dur: 700,
             easing: 'easeInOutCubic',
         })
-
+        
         // this.el.addEventListener('animationbegin', () => (this.el.object3D.visible = true))
         // this.el.addEventListener('animationcomplete__portal', () => (this.el.object3D.visible = !this.isClosed()))
 
@@ -335,6 +334,12 @@ AFRAME.registerComponent('portal', {
     },
 
     setupPortal: function () {
+        // get rid of interactivity
+        if (this.el.classList.contains("interactable")) {
+            this.el.classList.remove("interactable")
+        }
+        this.el.removeAttribute("is-remote-hover-target")
+        
         let target = this.data.materialTarget
         if (target && target.length == 0) {target=null}
     

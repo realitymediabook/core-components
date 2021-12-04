@@ -187,7 +187,7 @@ let WarpPortalShader: ShaderExtension = {
         if (material.userData.cubeMap && Array.isArray(material.userData.cubeMap.images) && material.userData.cubeMap.images[0]) {
             let height = material.userData.cubeMap.images[0].height
             let width = material.userData.cubeMap.images[0].width
-            material.uniforms.texInvSize.value: new THREE.Vector2(width, height);
+            material.uniforms.texInvSize.value = new THREE.Vector2(width, height);
         }
 
     }

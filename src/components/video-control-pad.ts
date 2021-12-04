@@ -28,7 +28,7 @@ AFRAME.registerComponent('video-control-pad', {
         // wait until the scene loads to finish.  We want to make sure everything
         // is initialized
         let root = findAncestorWithComponent(this.el, "gltf-model-plus")
-        root.addEventListener("model-loaded", () => { 
+        root && root.addEventListener("model-loaded", () => { 
             this.initialize()
         });
     },
