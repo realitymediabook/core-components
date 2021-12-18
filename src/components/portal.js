@@ -395,7 +395,7 @@ AFRAME.registerComponent('portal', {
         let scaleI = this.el.object3D.scale
         let scaleX = scaleM.x * scaleI.x
         let scaleY = scaleM.y * scaleI.y
-        let scaleZ = scaleM.y * scaleI.y
+        let scaleZ = scaleM.z * scaleI.z
 
         // this.portalWidth = scaleX / 2
         // this.portalHeight = scaleY / 2
@@ -425,12 +425,13 @@ AFRAME.registerComponent('portal', {
         let titleScaleY = scaleY / this.data.textScale
         let titleScaleZ = scaleZ / this.data.textScale
 
-        this.portalTitle.webLayer3D.scale.x /= scaleX
-        this.portalTitle.webLayer3D.scale.y /= scaleY
+        this.portalTitle.webLayer3D.scale.x /= titleScaleX
+        this.portalTitle.webLayer3D.scale.y /= titleScaleY
+        this.portalTitle.webLayer3D.scale.z /= titleScaleZ
 
-        this.portalTitle.webLayer3D.position.x = this.data.textPosition.x / titleScaleX
-        this.portalTitle.webLayer3D.position.y = 0.5 + size.height / 2 + this.data.textPosition.y / titleScaleY
-        this.portalTitle.webLayer3D.position.z = this.data.textPosition.z / titleScaleZ
+        this.portalTitle.webLayer3D.position.x = this.data.textPosition.x / scaleX
+        this.portalTitle.webLayer3D.position.y = 0.5 + size.height / 2 + this.data.textPosition.y / scaleY
+        this.portalTitle.webLayer3D.position.z = this.data.textPosition.z / scaleY
         // this.el.setObject3D('portalSubtitle', this.portalSubtitle.webLayer3D)
         // this.portalSubtitle.webLayer3D.position.x = 1
         this.el.setObject3D.matrixAutoUpdate = true
