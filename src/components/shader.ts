@@ -191,7 +191,7 @@ AFRAME.registerComponent('shader', {
                 updateMaterials()
             }
         }
-        root.addEventListener("model-loaded", initializer);
+        root && root.addEventListener("model-loaded", initializer);
         this.shaderDef = shaderDef
     },
 

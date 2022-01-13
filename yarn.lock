@@ -1253,10 +1253,9 @@
     "source-map" "~0.7.2"
     "source-map-support" "~0.5.19"
 
-"three@*":
-  "integrity" "sha512-OSPPKcGvFSiGkG3jFrwwC76PBV/ZSrGxpBbg28bW8s9GU8r/y2spNGtEXHEb/CVqo0Ctf5Lx2rVaxQZB6OasaA=="
-  "resolved" "https://registry.npmjs.org/three/-/three-0.130.1.tgz"
-  "version" "0.130.1"
+"three@*", "three@github:mozillareality/three.js#hubs/master":
+  "resolved" "git+ssh://git@github.com/mozillareality/three.js.git#494c88f493ca73c4521171bc849b2918f3a5c528"
+  "version" "0.111.0"
 
 "toidentifier@1.0.0":
   "integrity" "sha512-yaOH/Pk/VEhBWWTlhI+qXxDFXlejDGcQipMlyxda9nthulaxLZUNcUqFxokp0vcYnvteJln5FNQDRrxj3YcbVw=="

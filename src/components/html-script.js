@@ -70,7 +70,7 @@ AFRAME.registerComponent('html-script', {
         }
 
         let root = findAncestorWithComponent(this.el, "gltf-model-plus")
-        root.addEventListener("model-loaded", (ev) => { 
+        root && root.addEventListener("model-loaded", (ev) => { 
             this.createScript()
         });
 
@@ -247,6 +247,7 @@ AFRAME.registerComponent('html-script', {
                     if (this.el.classList.contains("interactable")) {
                         this.el.classList.remove("interactable")
                     }
+                    this.el.removeAttribute("is-remote-hover-target")
                 }
 
                 // TODO: this SHOULD work but make sure it works if the el we are on
