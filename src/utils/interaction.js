@@ -48,46 +48,6 @@ const planeForRightCursor = new THREE.Mesh(
   })
 );
 
-export function getInteractors(el, obj) {
-    // more or less copied from "hoverable-visuals.js" in hubs
-    const toggling = el.sceneEl.systems["hubs-systems"].cursorTogglingSystem;
-    var passthruInteractor = []
-
-    let interactorOne, interactorTwo;
-    const interaction = el.sceneEl.systems.interaction;
-    if (!interaction.ready) return; //DOMContentReady workaround
-    
-    // TODO:  may want to look to see the hovered objects are children of obj??
-    let hoverEl = obj
-    if (interaction.state.leftHand.hovered === hoverEl && !interaction.state.leftHand.held) {
-      interactorOne = interaction.options.leftHand.entity.object3D;
-    }
-    if (
-      interaction.state.leftRemote.hovered === hoverEl &&
-      !interaction.state.leftRemote.held &&
-      !toggling.leftToggledOff
-    ) {
-      interactorOne = interaction.options.leftRemote.entity.object3D;
-    }
-    if (interactorOne) {
-        passthruInteractor.push(interactorOne)
-    }
-    if (
-      interaction.state.rightRemote.hovered === hoverEl &&
-      !interaction.state.rightRemote.held &&
-      !toggling.rightToggledOff
-    ) {
-      interactorTwo = interaction.options.rightRemote.entity.object3D;
-    }
-    if (interaction.state.rightHand.hovered === hoverEl && !interaction.state.rightHand.held) {
-        interactorTwo = interaction.options.rightHand.entity.object3D;
-    }
-    if (interactorTwo) {
-        passthruInteractor.push(interactorTwo)
-    }
-    return passthruInteractor
-}
-
 export class HandleInteraction {
   constructor(el) {
     this.el = el;
@@ -111,21 +71,84 @@ export class HandleInteraction {
   getRefs() {
     if (!this.didGetObjectReferences) {
         this.didGetObjectReferences = true;
-        this.leftEventer = document.getElementById("left-cursor").object3D;
-        this.leftCursorController = document.getElementById("left-cursor-controller");
+        const interaction = this.el.sceneEl.systems.interaction;
+
+        // this.leftEventer = document.getElementById("left-cursor").object3D;
+        // this.leftCursorController = document.getElementById("left-cursor-controller");
+        // this.leftRaycaster = this.leftCursorController.components["cursor-controller"].raycaster;
+        // this.rightCursorController = document.getElementById("right-cursor-controller");
+        // this.rightRaycaster = this.rightCursorController.components["cursor-controller"].raycaster;
+        this.leftEventer = interaction.options.leftRemote.entity.object3D;
+        this.leftCursorController = interaction.leftCursorControllerEl;
         this.leftRaycaster = this.leftCursorController.components["cursor-controller"].raycaster;
-        this.rightCursorController = document.getElementById("right-cursor-controller");
+        this.rightCursorController = interaction.rightCursorControllerEl;
         this.rightRaycaster = this.rightCursorController.components["cursor-controller"].raycaster;
+
         this.viewingCamera = document.getElementById("viewing-camera").object3DMap.camera;
-      }
+        this.toggling = this.el.sceneEl.systems["hubs-systems"].cursorTogglingSystem;
+    }
   }
 
-  getIntersection(e) {
+    getInteractors(obj) {
+        this.getRefs();
+
+        // more or less copied from "hoverable-visuals.js" in hubs
+        const interaction = this.el.sceneEl.systems.interaction;
+        var passthruInteractor = []
+
+        let interactorOne, interactorTwo;
+        if (!interaction.ready) return; //DOMContentReady workaround
+        
+        // TODO:  may want to look to see the hovered objects are children of obj??
+        let hoverEl = obj
+        if (interaction.state.leftHand.hovered === hoverEl && !interaction.state.leftHand.held) {
+          interactorOne = {
+              cursor: interaction.options.leftHand.entity.object3D,
+              controller: interaction.leftCursorControllerEl.components["cursor-controller"]
+          }
+        }
+        if (
+          interaction.state.leftRemote.hovered === hoverEl &&
+          !interaction.state.leftRemote.held &&
+          !this.toggling.leftToggledOff
+        ) {
+          interactorOne = {
+            cursor: interaction.options.leftRemote.entity.object3D,
+            controller: interaction.leftCursorControllerEl.components["cursor-controller"]
+        }
+
+        }
+        if (interactorOne) {
+            passthruInteractor.push(interactorOne)
+        }
+        if (
+          interaction.state.rightRemote.hovered === hoverEl &&
+          !interaction.state.rightRemote.held &&
+          !this.toggling.rightToggledOff
+        ) {
+          interactorTwo = {
+              cursor: interaction.options.rightRemote.entity.object3D,
+              controller: interaction.rightCursorControllerEl.components["cursor-controller"]
+          }      
+        }
+        if (interaction.state.rightHand.hovered === hoverEl && !interaction.state.rightHand.held) {
+            interactorTwo = {
+                cursor: interaction.options.rightHand.entity.object3D,
+                controller: interaction.rightCursorControllerEl.components["cursor-controller"]
+            }
+        }
+        if (interactorTwo) {
+            passthruInteractor.push(interactorTwo)
+        }
+        return passthruInteractor
+    }
+
+  getIntersection(object3D, target) {
       this.getRefs();
 
-      let raycaster = e.object3D === this.leftEventer ? this.leftRaycaster : this.rightRaycaster;
+      let raycaster = object3D === this.leftEventer ? this.leftRaycaster : this.rightRaycaster;
 
-      let intersects = raycaster.intersectObjects(e.target.children, true);
+      let intersects = raycaster.intersectObjects(target.children, true);
       if (intersects.length > 0) {
           return intersects[0];
       }

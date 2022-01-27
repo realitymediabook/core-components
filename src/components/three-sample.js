@@ -5,7 +5,7 @@
  * with and has some networked attributes.
  *
  */
-import { getInteractors, interactiveComponentTemplate, registerSharedAFRAMEComponents } from "../utils/interaction";
+import { interactiveComponentTemplate, registerSharedAFRAMEComponents } from "../utils/interaction";
 
 ///////////////////////////////////////////////////////////////////////////////
 // simple convenience functions 
@@ -92,14 +92,17 @@ let child = {
         // our potentiall-shared object state (two roations and two colors for the boxes) 
         this.sharedData = {
             color: new THREE.Color(randomColor()),
-            color2: new THREE.Color(randomColor()),
             rotation: new THREE.Euler(),
-            rotation2: new THREE.Euler()
+            position: new THREE.Vector3()
         };
 
         // some local state
         this.initialEuler = new THREE.Euler()
        
+        // some click/drag state
+        this.clickEvent = null
+        this.clickIntersection = null
+
         // we should set fullName if we have a meaningful name
         if (this.data.name && this.data.name.length > 0) {
             this.fullName = this.data.name;
@@ -132,12 +135,12 @@ let child = {
         this.simpleContainer.setObject3D('box', this.box)
         
         this.box2 = new THREE.Mesh(
-            new THREE.BoxGeometry(1,1,1,2,2,2), 
-            new THREE.MeshBasicMaterial({color: this.sharedData.color2})
+            new THREE.BoxGeometry(0.1,0.1,0.1,2,2,2), 
+            new THREE.MeshBasicMaterial({color: "black"})
         );
         this.box2.matrixAutoUpdate = true;
-        this.box2.position.y += 1.1
-        this.simpleContainer.setObject3D('box2', this.box2)
+        this.box2.position.y += 0.5;
+        this.box.add(this.box2)
     },
 
     // handle "interact" events for clickable entities
@@ -145,24 +148,22 @@ let child = {
         // the evt.target will point at the object3D in this entity.  We can use
         // handleInteraction.getInteractionTarget() to get the more precise 
         // hit information for all the object3Ds in our object
-        this.objectIntersect = this.handleInteraction.getIntersection(evt);
+        this.clickIntersection = this.handleInteraction.getIntersection(evt.object3D, evt.target);
+        this.clickEvent = evt;
 
-        if (!this.objectIntersect) {
+        if (!this.clickIntersection) {
             console.warn("click didn't hit anything; shouldn't happen");
             return;
         }
 
-        // new random color on each click
-        let newColor = randomColor()
+        if (this.clickIntersection.object == this.box) {
+            // new random color on each click
+            let newColor = randomColor()
 
-        if (this.objectIntersect.object == this.box) {
             this.box.material.color.set(newColor)
             this.sharedData.color.set(newColor)
             this.setSharedData()
-        } else if (this.objectIntersect.object == this.box2) {
-            this.box2.material.color.set(newColor)
-            this.sharedData.color2.set(newColor)
-            this.setSharedData()
+        } else if (this.clickIntersection.object == this.box2) {
         }
     },
      
@@ -172,16 +173,20 @@ let child = {
         this.handleInteraction.startDrag(evt)
 
         // grab a copy of the current orientation of the object we clicked
-        if (this.objectIntersect.object == this.box) {
+        if (this.clickIntersection.object == this.box) {
             this.initialEuler.copy(this.box.rotation)
-        } else if (this.objectIntersect.object == this.box2) {
-            this.initialEuler.copy(this.box2.rotation)
+        } else if (this.clickIntersection.object == this.box2) {
+            this.box2.material.color.set("red")
         }
     },
 
     // called when the button is released to finish the drag
     dragEnd: function (evt) {
         this.handleInteraction.endDrag(evt)
+        if (this.clickIntersection.object == this.box) {
+        } else if (this.clickIntersection.object == this.box2) {
+            this.box2.material.color.set("black")
+        }
     },
 
     // the method setSharedData() always sets the shared data, causing a network update.  
@@ -193,9 +198,9 @@ let child = {
             this.setSharedData()
         }
     },
-    setSharedEuler2: function (newEuler) {
-        if (!almostEqualVec3(this.sharedData.rotation2, newEuler, 0.05)) {
-            this.sharedData.rotation2.copy(newEuler)
+    setSharedPosition: function (newPos) {
+        if (!almostEqualVec3(this.sharedData.position, newPos, 0.05)) {
+            this.sharedData.position.copy(newPos)
             this.setSharedData()
         }
     },
@@ -226,30 +231,50 @@ let child = {
 
             // if we're dragging, update the rotation
             if (this.isDraggable && this.handleInteraction.isDragging) {
-                // update drag state
-                this.handleInteraction.drag()
 
                 // do something with the dragging. Here, we'll use delta.x and delta.y
                 // to rotate the object.  These values are set as a relative offset in
                 // the plane perpendicular to the view, so we'll use them to offset the
                 // x and y rotation of the object.  This is a TERRIBLE way to do rotate,
                 // but it's a simple example.
-                if (this.objectIntersect.object == this.box) {
+                if (this.clickIntersection.object == this.box) {
+                    // update drag state
+                    this.handleInteraction.drag()
+
                     this.box.rotation.set(this.initialEuler.x - this.handleInteraction.delta.x,
                         this.initialEuler.y + this.handleInteraction.delta.y, 
                         this.initialEuler.z)
                     this.setSharedEuler(this.box.rotation)
-                } else if (this.objectIntersect.object == this.box2) {
-                    this.box2.rotation.set(this.initialEuler.x - this.handleInteraction.delta.x,
-                        this.initialEuler.y + this.handleInteraction.delta.y, 
-                        this.initialEuler.z)
-                    this.setSharedEuler2(this.box2.rotation)
+                } else if (this.clickIntersection.object == this.box2) {
+                    this.box2.visible = false
+                    let intersect = this.handleInteraction.getIntersection(this.clickEvent.object3D, this.clickEvent.target)
+                    this.box2.visible = true
+                    if (intersect) {
+                        let position = this.box.worldToLocal(intersect.point)
+                        this.box2.position.copy(position)
+                        this.setSharedPosition(this.box2.position)
+                    }
                 }
             } else {
                 // do something with the rays when not dragging or clicking.
                 // For example, we could display some additional content when hovering
-                let passthruInteractor = getInteractors(this.el, this.simpleContainer)
+                let passthruInteractor = this.handleInteraction.getInteractors(this.simpleContainer);
 
+                let setIt = false;
+                for (let i = 0;  i< passthruInteractor.length; i++) {
+                    let interactor = passthruInteractor[i]
+                    let intersection = this.handleInteraction.getIntersection(interactor.cursor, this.simpleContainer.object3D)
+                    if (intersection && intersection.object === this.box2) {
+                        this.box2.material.color.set("yellow")
+                        setIt = true
+                    }
+                }
+                if (!setIt) {
+                    this.box2.material.color.set("black")
+                }
+                // TODO: get the intersection point on the surface for
+                // the interactors.
+                
                 // passthruInteractor is an array of the 0, 1, or 2 interactors that are 
                 // hovering over this entity
 
@@ -268,13 +293,11 @@ let child = {
                 // got the data, now do something with it
                 let newData = this.stateSync.dataObject
                 this.sharedData.color.set(newData.color)
-                this.sharedData.color2.set(newData.color2)
                 this.sharedData.rotation.copy(newData.rotation)
-                this.sharedData.rotation2.copy(newData.rotation2)
+                this.sharedData.position.copy(newData.position)
                 this.box.material.color.set(newData.color)
                 this.box.rotation.copy(newData.rotation)
-                this.box2.material.color.set(newData.color2)
-                this.box2.rotation.copy(newData.rotation2)
+                this.box2.position.copy(newData.position)
             }
         }
     }
