@@ -175,6 +175,7 @@ let child = {
         this.box.matrixAutoUpdate = true;
         this.simpleContainer.setObject3D('box', this.box)
 
+        // create a second small, black box on the surface of the box
         this.box2 = new THREE.Mesh(
             new THREE.BoxGeometry(0.1, 0.1, 0.1, 2, 2, 2),
             new THREE.MeshBasicMaterial({
@@ -183,6 +184,8 @@ let child = {
         );
         this.box2.matrixAutoUpdate = true;
         this.box2.position.y += 0.5;
+
+        // add it as a child of the first box, since we want it to move with the first box
         this.box.add(this.box2)
 
         // IMPORTANT: any three.js object that is added to a Hubs (aframe) entity 
@@ -293,15 +296,27 @@ let child = {
                     // update drag state
                     this.handleInteraction.drag()
 
+                    // compute a new rotation based on the delta
                     this.box.rotation.set(this.initialEuler.x - this.handleInteraction.delta.x,
                         this.initialEuler.y + this.handleInteraction.delta.y,
                         this.initialEuler.z)
+
+                    // update the shared rotation
                     this.setSharedEuler(this.box.rotation)
                 } else if (this.clickIntersection.object == this.box2) {
+
+                    // we want to hit test on our boxes, but only want to know if/where
+                    // we hit the big box.  So first hide the small box, and then do a
+                    // a hit test, which can only result in a hit on the big box.  
                     this.box2.visible = false
                     let intersect = this.handleInteraction.getIntersection(this.handleInteraction.dragInteractor, [this.clickEvent.target])
                     this.box2.visible = true
+
+                    // if we hit the big box, move the small box to the position of the hit
                     if (intersect) {
+                        // the intersect object is a THREE.Intersection object, which has the hit point
+                        // specified in world coordinates.  So we move those coordinates into the local
+                        // coordiates of the big box, and then set the position of the small box to that
                         let position = this.box.worldToLocal(intersect.point)
                         this.box2.position.copy(position)
                         this.setSharedPosition(this.box2.position)
@@ -312,24 +327,25 @@ let child = {
                 // For example, we could display some additional content when hovering
                 let passthruInteractor = this.handleInteraction.getInteractors(this.simpleContainer);
 
+                // we will set yellow if either interactor hits the box. We'll keep track of if
+                // one does
                 let setIt = false;
+
+                // for each of our interactors, check if it hits the scene
                 for (let i = 0; i < passthruInteractor.length; i++) {
                     let intersection = this.handleInteraction.getIntersection(passthruInteractor[i], this.simpleContainer.object3D.children)
+
+                    // if we hit the small box, set the color to yellow, and flag that we hit
                     if (intersection && intersection.object === this.box2) {
                         this.box2.material.color.set("yellow")
                         setIt = true
                     }
                 }
+
+                // if we didn't hit, make sure the color remains black
                 if (!setIt) {
                     this.box2.material.color.set("black")
                 }
-                // TODO: get the intersection point on the surface for
-                // the interactors.
-
-                // passthruInteractor is an array of the 0, 1, or 2 interactors that are 
-                // hovering over this entity
-
-                // DO SOMETHING WITH THE INTERACTORS if you want hover feedback
             }
         }
 
