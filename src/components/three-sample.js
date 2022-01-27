@@ -1,11 +1,14 @@
 /**
  * Description
  * ===========
- * create a threejs object (two cubes, one above the other) that can be interacted 
+ * create a threejs object (two cubes, one on the surface of the other) that can be interacted 
  * with and has some networked attributes.
  *
  */
-import { interactiveComponentTemplate, registerSharedAFRAMEComponents } from "../utils/interaction";
+import {
+    interactiveComponentTemplate,
+    registerSharedAFRAMEComponents
+} from "../utils/interaction";
 
 ///////////////////////////////////////////////////////////////////////////////
 // simple convenience functions 
@@ -13,12 +16,13 @@ function randomColor() {
     return new THREE.Color(Math.random(), Math.random(), Math.random());
 }
 
-function almostEqualVec3 (u, v, epsilon) {
-    return Math.abs(u.x-v.x)<epsilon && Math.abs(u.y-v.y)<epsilon && Math.abs(u.z-v.z)<epsilon;
- };
- function almostEqualColor (u, v, epsilon) {
-    return Math.abs(u.r-v.r)<epsilon && Math.abs(u.g-v.g)<epsilon && Math.abs(u.b-v.b)<epsilon;
- };  
+function almostEqualVec3(u, v, epsilon) {
+    return Math.abs(u.x - v.x) < epsilon && Math.abs(u.y - v.y) < epsilon && Math.abs(u.z - v.z) < epsilon;
+};
+
+function almostEqualColor(u, v, epsilon) {
+    return Math.abs(u.r - v.r) < epsilon && Math.abs(u.g - v.g) < epsilon && Math.abs(u.b - v.b) < epsilon;
+};
 
 // a lot of the complexity has been pulled out into methods in the object
 // created by interactiveComponentTemplate() and registerSharedAFRAMEcomponents().
@@ -32,17 +36,32 @@ function almostEqualVec3 (u, v, epsilon) {
 //   - update() and play() if you need them
 //   - tick() and tick2() to handle frame updates
 //
-// - change isNetworked, isInteractive, isDraggable (default: false)
+// - change isNetworked, isInteractive, isDraggable (default: false) to reflect what 
+//   the object needs to do.
 // - loadData() is an async function that does any slow work (loading things, etc)
 //   and is called by finishInit(), which waits till it's done before setting things up
 // - initializeData() is called to set up the initial state of the object, a good 
 //   place to create the 3D content.  The three.js scene should be added to 
 //   this.simpleContainter
 // - clicked() is called when the object is clicked
-// - dragStart() is called right after clicked() if isDraggable is true, to set up drag
-// - dragEnd() is called when the drag is done
+// - dragStart() is called right after clicked() if isDraggable is true, to set up
+//   for a possible drag operation
+// - dragEnd() is called when the mouse is released
 // - drag() should be called each frame while the object is being dragged (between 
 //   dragStart() and dragEnd())
+// - getInteractors() returns an array of objects for which interaction controls are
+//   intersecting the object. There will likely be zero, one, or two of these (if 
+//   there are two controllers and both are pointing at the object).  The "cursor"
+//   field is a pointer to the small sphere Object3D that is displayed where the 
+//   interaction ray touches the object. The "controller" field is the 
+///  corresponding controller
+//   object that includes things like the rayCaster.
+// - getIntersection() takes in the interactor and the three.js object3D array 
+//   that should be tested for interaction.
+
+// Note that only the entity that this component is attached to will be "seen"
+// by Hubs interaction system, so the entire three.js tree below it triggers
+// click and drag events.  The getIntersection() method is needed 
 
 // the componentName must be lowercase, can have hyphens, start with a letter, 
 // but no underscores
@@ -55,17 +74,35 @@ let template = interactiveComponentTemplate(componentName);
 let child = {
     schema: {
         // name is hopefully unique for each instance
-        name: { type: "string", default: ""},
+        name: {
+            type: "string",
+            default: ""
+        },
 
         // the template will look for these properties. If they aren't there, then
         // the lookup (this.data.*) will evaluate to falsey
-        isNetworked: { type: "boolean", default: false},
-        isInteractive: { type: "boolean", default: true},
-        isDraggable: { type: "boolean", default: true},
+        isNetworked: {
+            type: "boolean",
+            default: false
+        },
+        isInteractive: {
+            type: "boolean",
+            default: true
+        },
+        isDraggable: {
+            type: "boolean",
+            default: true
+        },
 
         // our data
-        width: { type: "number", default: 1},
-        parameter1: { type: "string", default: ""}
+        width: {
+            type: "number",
+            default: 1
+        },
+        parameter1: {
+            type: "string",
+            default: ""
+        }
     },
 
     // fullName is used to generate names for the AFRame objects we create.  Should be
@@ -75,16 +112,19 @@ let child = {
     init: function () {
         this.startInit();
 
-        // the template uses these to set things up.  relativeWidth and relativeHeight
-        // are used to set the size of the object relative to the size of the image
-        // that it's attached to: 1,1 will be "the width and height of the object below
-        // will be the same as the width and height of the image if it's 1,1".  Larger
-        // relative scales will make the object smaller, and vice versa.  For example,
-        // if the object below is 2,2 in size and we set relative scale to 2,2, then
-        // the object will remain the same size as the image.  If we leave it at 1,1,
+        // the template uses these to set things up.  relativeSize
+        // is used to set the size of the object relative to the size of the image
+        // that it's attached to: a size of 1 means 
+        //   "the size of 1x1x1 units in the object
+        //    space will be the same as the size of the image".  
+        // Larger relative sizes will make the object smaller because we are
+        // saying that a size of NxNxN maps to the Size of the image, and vice versa.  
+        // For example, if the object below is 2,2 in size and we set size 2, then
+        // the object will remain the same size as the image. If we leave it at 1,1,
         // then the object will be twice the size of the image. 
-        this.relativeWidth = 1/this.data.width;
-        this.relativeHeight = 1/this.data.width;
+        this.relativeSize = this.data.width;
+
+        // override the defaults in the template
         this.isDraggable = this.data.isDraggable;
         this.isInteractive = this.data.isInteractive;
         this.isNetworked = this.data.isNetworked;
@@ -98,7 +138,7 @@ let child = {
 
         // some local state
         this.initialEuler = new THREE.Euler()
-       
+
         // some click/drag state
         this.clickEvent = null
         this.clickIntersection = null
@@ -115,8 +155,7 @@ let child = {
     // if anything changed in this.data, we need to update the object.  
     // this is probably not going to happen, but could if another of 
     // our scripts modifies the component properties in the DOM
-    update: function () {
-    },
+    update: function () {},
 
     // do some stuff to get async data.  Called by initTemplate()
     loadData: async function () {
@@ -128,27 +167,40 @@ let child = {
     // the template created for us).
     initializeData: function () {
         this.box = new THREE.Mesh(
-            new THREE.BoxGeometry(1,1,1,2,2,2), 
-            new THREE.MeshBasicMaterial({color: this.sharedData.color})
+            new THREE.BoxGeometry(1, 1, 1, 2, 2, 2),
+            new THREE.MeshBasicMaterial({
+                color: this.sharedData.color
+            })
         );
         this.box.matrixAutoUpdate = true;
         this.simpleContainer.setObject3D('box', this.box)
-        
+
         this.box2 = new THREE.Mesh(
-            new THREE.BoxGeometry(0.1,0.1,0.1,2,2,2), 
-            new THREE.MeshBasicMaterial({color: "black"})
+            new THREE.BoxGeometry(0.1, 0.1, 0.1, 2, 2, 2),
+            new THREE.MeshBasicMaterial({
+                color: "black"
+            })
         );
         this.box2.matrixAutoUpdate = true;
         this.box2.position.y += 0.5;
         this.box.add(this.box2)
+
+        // IMPORTANT: any three.js object that is added to a Hubs (aframe) entity 
+        // must have ".el" pointing to the AFRAME Entity that contains it.
+        // When an object3D is added with ".setObject3D", it is added to the 
+        // object3D for that Entity, and sets all of the children of that
+        // object3D to point to the same Entity.  If you add an object3D to
+        // the sub-tree of that object later, you must do this yourself. 
+        this.box2.el = this.simpleContainer
     },
 
     // handle "interact" events for clickable entities
-    clicked: function(evt) {
+    clicked: function (evt) {
         // the evt.target will point at the object3D in this entity.  We can use
         // handleInteraction.getInteractionTarget() to get the more precise 
-        // hit information for all the object3Ds in our object
-        this.clickIntersection = this.handleInteraction.getIntersection(evt.object3D, evt.target);
+        // hit information about which object3Ds in our object were hit.  We store
+        // the one that was clicked here, so we know which it was as we drag around
+        this.clickIntersection = this.handleInteraction.getIntersection(evt.object3D, [evt.target]);
         this.clickEvent = evt;
 
         if (!this.clickIntersection) {
@@ -163,14 +215,15 @@ let child = {
             this.box.material.color.set(newColor)
             this.sharedData.color.set(newColor)
             this.setSharedData()
-        } else if (this.clickIntersection.object == this.box2) {
-        }
+        } else if (this.clickIntersection.object == this.box2) {}
     },
-     
+
     // called to start the drag.  Will be called after clicked() if isDraggable is true
-    dragStart: function(evt) {
+    dragStart: function (evt) {
         // set up the drag state
-        this.handleInteraction.startDrag(evt)
+        if (!this.handleInteraction.startDrag(evt)) {
+            return
+        }
 
         // grab a copy of the current orientation of the object we clicked
         if (this.clickIntersection.object == this.box) {
@@ -183,8 +236,7 @@ let child = {
     // called when the button is released to finish the drag
     dragEnd: function (evt) {
         this.handleInteraction.endDrag(evt)
-        if (this.clickIntersection.object == this.box) {
-        } else if (this.clickIntersection.object == this.box2) {
+        if (this.clickIntersection.object == this.box) {} else if (this.clickIntersection.object == this.box2) {
             this.box2.material.color.set("black")
         }
     },
@@ -206,7 +258,7 @@ let child = {
     },
 
     // if the object is networked, this.stateSync will exist and should be called
-    setSharedData: function() {
+    setSharedData: function () {
         if (this.stateSync) {
             return this.stateSync.setSharedData(this.sharedData)
         }
@@ -215,7 +267,7 @@ let child = {
 
     // this is called from the networked data entity to get the initial data 
     // from the component
-    getSharedData: function() {
+    getSharedData: function () {
         return this.sharedData
     },
 
@@ -242,12 +294,12 @@ let child = {
                     this.handleInteraction.drag()
 
                     this.box.rotation.set(this.initialEuler.x - this.handleInteraction.delta.x,
-                        this.initialEuler.y + this.handleInteraction.delta.y, 
+                        this.initialEuler.y + this.handleInteraction.delta.y,
                         this.initialEuler.z)
                     this.setSharedEuler(this.box.rotation)
                 } else if (this.clickIntersection.object == this.box2) {
                     this.box2.visible = false
-                    let intersect = this.handleInteraction.getIntersection(this.clickEvent.object3D, this.clickEvent.target)
+                    let intersect = this.handleInteraction.getIntersection(this.handleInteraction.dragInteractor, [this.clickEvent.target])
                     this.box2.visible = true
                     if (intersect) {
                         let position = this.box.worldToLocal(intersect.point)
@@ -261,9 +313,8 @@ let child = {
                 let passthruInteractor = this.handleInteraction.getInteractors(this.simpleContainer);
 
                 let setIt = false;
-                for (let i = 0;  i< passthruInteractor.length; i++) {
-                    let interactor = passthruInteractor[i]
-                    let intersection = this.handleInteraction.getIntersection(interactor.cursor, this.simpleContainer.object3D)
+                for (let i = 0; i < passthruInteractor.length; i++) {
+                    let intersection = this.handleInteraction.getIntersection(passthruInteractor[i], this.simpleContainer.object3D.children)
                     if (intersection && intersection.object === this.box2) {
                         this.box2.material.color.set("yellow")
                         setIt = true
@@ -274,7 +325,7 @@ let child = {
                 }
                 // TODO: get the intersection point on the surface for
                 // the interactors.
-                
+
                 // passthruInteractor is an array of the 0, 1, or 2 interactors that are 
                 // hovering over this entity
 
@@ -284,12 +335,14 @@ let child = {
 
         if (this.isNetworked) {
             // if we haven't finished setting up the networked entity don't do anything.
-            if (!this.netEntity || !this.stateSync) { return }
+            if (!this.netEntity || !this.stateSync) {
+                return
+            }
 
             // if the state has changed in the networked data, update our html object
             if (this.stateSync.changed) {
                 this.stateSync.changed = false
-                
+
                 // got the data, now do something with it
                 let newData = this.stateSync.dataObject
                 this.sharedData.color.set(newData.color)
@@ -304,7 +357,10 @@ let child = {
 }
 
 // register the component with the AFrame scene
-AFRAME.registerComponent(componentName, {...child, ...template})
+AFRAME.registerComponent(componentName, {
+    ...child,
+    ...template
+})
 
 // create and register the data component and it's NAF component with the AFrame scene
 registerSharedAFRAMEComponents(componentName)
