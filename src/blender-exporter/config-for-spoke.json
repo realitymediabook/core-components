@@ -4,6 +4,37 @@
   "types": {
   },
   "components": {
+    "test-cube": {
+        "category": "AEL",
+        "nodes": ["Image"],
+        "properties": {
+            "name": { 
+                "type": "string",
+                "default": "" 
+            },
+            "width": { 
+                "type": "float",
+                "default": 1.0
+            },
+            "isNetworked": { 
+                "type": "bool",
+                "default": false
+            },
+            "isInteractive": { 
+                "type": "bool",
+                "default": false
+            },
+            "isDraggable": { 
+                "type": "bool",
+                "default": false
+            },
+            "parameter1" : {
+                "type": "string",
+                "default": ""
+            }
+        }
+    },
+
     "html-script": {
         "category": "AEL",
         "nodes": ["Image"],
@@ -131,6 +162,5 @@
             }
         }
     }
-
   }
 }

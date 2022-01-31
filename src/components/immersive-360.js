@@ -12,6 +12,13 @@
  * "some-descriptive-label__12345abc-6789def_jpg" OR "12345abc-6789def_jpg"
  */
 
+
+// TODO: 
+// - adjust size of pano ball
+// - drop on video or image and pull video/image from that media location
+// - intercept mouse input somehow?    Not sure if it's possible.
+
+
 import ballfx from '../assets/ballfx.png'
 import panovert from '../shaders/panoball.vert'
 import panofrag from '../shaders/panoball.frag'

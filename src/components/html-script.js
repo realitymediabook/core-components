@@ -101,7 +101,6 @@ AFRAME.registerComponent('html-script', {
         // A .glb in spoke will fall back to the spoke name if you use one without
         // a name inside it.
         let loader = () => {
-
             this.loadScript().then( () => {
                 if (!this.script) return
 
@@ -312,9 +311,9 @@ AFRAME.registerComponent('html-script', {
                         NAF.utils.getNetworkedEntity(this.netEntity).then(networkedEl => {
                             this.stateSync = networkedEl.components["script-data"]
 
-                            // if this is the first networked entity, it's sharedData will default to the empty 
-                            // string, and we should initialize it with the initial data from the script
-                            if (this.stateSync.sharedData === 0) {
+                            // if this is the first networked entity, it's sharedData will default to the  
+                            // string "{}", and we should initialize it with the initial data from the script
+                            if (this.stateSync.sharedData.length == 2) {
                                 let networked = networkedEl.components["networked"]
                                 // if (networked.data.creator == NAF.clientId) {
                                 //     this.stateSync.initSharedData(this.script.getSharedData())
@@ -566,14 +565,14 @@ AFRAME.registerComponent('script-data', {
         this.changed = !(this.sharedData === this.data.scriptdata);
         if (this.changed) {
             try {
-                this.dataObject = JSON.parse(decodeURIComponent(this.scriptData))
+                this.dataObject = JSON.parse(decodeURIComponent(this.data.scriptdata))
 
                 // do these after the JSON parse to make sure it has succeeded
                 this.sharedData = this.data.scriptdata;
                 this.changed = true
             } catch(e) {
                 console.error("couldn't parse JSON received in script-sync: ", e)
-                this.sharedData = ""
+                this.sharedData = "{}"
                 this.dataObject = {}
             }
         }
