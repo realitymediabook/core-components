@@ -4,8 +4,11 @@ tunnels:
     bind_tls: true
     addr: 6000
     subdomain: blair-core
+    host_header: rewrite    
   vue-apps:
     proto: http
     bind_tls: true
-    addr: 5000
+    addr: 5001
     subdomain: blair-vue-apps
+    host_header: rewrite
+

@@ -99,6 +99,10 @@ let child = {
             type: "number",
             default: 1
         },
+        color: {
+            type: "string",
+            default: ""
+        },
         parameter1: {
             type: "string",
             default: ""
@@ -131,9 +135,9 @@ let child = {
 
         // our potentiall-shared object state (two roations and two colors for the boxes) 
         this.sharedData = {
-            color: new THREE.Color(randomColor()),
+            color: new THREE.Color(this.data.color.length > 0 ? this.data.color : "grey"),
             rotation: new THREE.Euler(),
-            position: new THREE.Vector3()
+            position: new THREE.Vector3(0,0.5,0)
         };
 
         // some local state
@@ -183,7 +187,7 @@ let child = {
             })
         );
         this.box2.matrixAutoUpdate = true;
-        this.box2.position.y += 0.5;
+        this.box2.position.copy(this.sharedData.position)
 
         // add it as a child of the first box, since we want it to move with the first box
         this.box.add(this.box2)

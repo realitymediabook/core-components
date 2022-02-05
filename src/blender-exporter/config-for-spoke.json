@@ -28,6 +28,10 @@
                 "type": "bool",
                 "default": false
             },
+            "color" : {
+                "type": "string",
+                "default": ""
+            },
             "parameter1" : {
                 "type": "string",
                 "default": ""
