@@ -13,7 +13,9 @@
  * For example, to make a pair of connected blue portals,
  * you could name them "portal-to__blue" and "portal-from__blue"
  */
- import * as htmlComponents from "https://resources.realitymedia.digital/vue-apps/dist/hubs.js";
+import {vueComponents as htmlComponents} from "https://resources.realitymedia.digital/vue-apps/dist/hubs.js";
+//  import "https://resources.realitymedia.digital/vue-apps/dist/hubs.js";
+// let htmlComponents = window.APP.vueApps
 
 import './proximity-events.js'
 // import vertexShader from '../shaders/portal.vert.js'
@@ -159,30 +161,30 @@ AFRAME.registerSystem('portal', {
     this.teleporting = false
     this.characterController = this.el.systems['hubs-systems'].characterController
     this.fader = this.el.systems['fader-plus']
-    this.roomData = null
+    // this.roomData = null
     this.waitForFetch = this.waitForFetch.bind(this)
 
     // if the user is logged in, we want to retrieve their userData from the top level server
-    if (window.APP.store.state.credentials && window.APP.store.state.credentials.token && !window.APP.userData) {
-        this.fetchRoomData()
-    }
+    // if (window.APP.store.state.credentials && window.APP.store.state.credentials.token && !window.APP.userData) {
+    //     this.fetchRoomData()
+    // }
   },
-  fetchRoomData: async function () {
-    var params = {token: window.APP.store.state.credentials.token,
-                  room_id: window.APP.hubChannel.hubId}
+//   fetchRoomData: async function () {
+//     var params = {token: window.APP.store.state.credentials.token,
+//                   room_id: window.APP.hubChannel.hubId}
 
-    const options = {};
-    options.headers = new Headers();
-    options.headers.set("Authorization", `Bearer ${params}`);
-    options.headers.set("Content-Type", "application/json");
-    await fetch("https://realitymedia.digital/userData", options)
-        .then(response => response.json())
-        .then(data => {
-          console.log('Success:', data);
-          this.roomData = data;
-    })
-    this.roomData.textures = []
-  },
+//     const options = {};
+//     options.headers = new Headers();
+//     options.headers.set("Authorization", `Bearer ${params}`);
+//     options.headers.set("Content-Type", "application/json");
+//     await fetch("https://realitymedia.digital/userData", options)
+//         .then(response => response.json())
+//         .then(data => {
+//           console.log('Success:', data);
+//           this.roomData = data;
+//     })
+//     this.roomData.textures = []
+//   },
   getRoomURL: async function (number) {
       this.waitForFetch()
       //return this.roomData.rooms.length > number ? "https://xr.realitymedia.digital/" + this.roomData.rooms[number] : null;
@@ -202,7 +204,7 @@ AFRAME.registerSystem('portal', {
       //return this.roomData.cubemaps.length > number ? this.roomData.cubemaps[number] : null;
   },
   waitForFetch: function () {
-     if (this.roomData && window.SSO.userInfo) return
+     if (window.SSO.userInfo) return
      setTimeout(this.waitForFetch, 100); // try again in 100 milliseconds
   },
   teleportTo: async function (object) {

@@ -313,7 +313,7 @@ let child = {
                     // we hit the big box.  So first hide the small box, and then do a
                     // a hit test, which can only result in a hit on the big box.  
                     this.box2.visible = false
-                    let intersect = this.handleInteraction.getIntersection(this.handleInteraction.dragInteractor, [this.clickEvent.target])
+                    let intersect = this.handleInteraction.getIntersection(this.handleInteraction.dragInteractor, [this.box])
                     this.box2.visible = true
 
                     // if we hit the big box, move the small box to the position of the hit
