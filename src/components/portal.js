@@ -335,7 +335,7 @@ AFRAME.registerComponent('portal', {
         }
     },
 
-    setupPortal: function () {
+    setupPortal: async function () {
         // get rid of interactivity
         if (this.el.classList.contains("interactable")) {
             this.el.classList.remove("interactable")
@@ -418,7 +418,7 @@ AFRAME.registerComponent('portal', {
         const portalTitle = htmlComponents["PortalTitle"]
         // const portalSubtitle = htmlComponents["PortalSubtitle"]
 
-        this.portalTitle = portalTitle(titleScriptData)
+        this.portalTitle = await portalTitle(titleScriptData)
         // this.portalSubtitle = portalSubtitle(subtitleScriptData)
 
         this.el.setObject3D('portalTitle', this.portalTitle.webLayer3D)
