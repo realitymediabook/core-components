@@ -13,7 +13,7 @@
  * For example, to make a pair of connected blue portals,
  * you could name them "portal-to__blue" and "portal-from__blue"
  */
-import htmlComponents from "https://resources.realitymedia.digital/vue-apps/dist/hubs.js";
+import * as htmlComponents from "https://resources.realitymedia.digital/vue-apps/dist/hubs.js";
 //  import "https://resources.realitymedia.digital/vue-apps/dist/hubs.js";
 // let htmlComponents = window.APP.vueApps
 

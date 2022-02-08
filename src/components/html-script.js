@@ -5,7 +5,7 @@
  *
  */
 import { findAncestorWithComponent } from "../utils/scene-graph";
-import htmlComponents from "https://resources.realitymedia.digital/vue-apps/dist/hubs.js";
+import * as htmlComponents from "https://resources.realitymedia.digital/vue-apps/dist/hubs.js";
 
 // var htmlComponents;
 // var scriptPromise;
