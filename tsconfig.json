@@ -2,8 +2,8 @@
 //"include": ["src"],
     "compilerOptions": {
       "allowUmdGlobalAccess": true,
-      "target": "ESNext",
-      "module": "ESNext",
+      "target": "es6",
+      "module": "es6",
       //"moduleResolution": "node",
       //"lib": ["ESNext", "DOM", "dom.iterable"],
       //"resolveJsonModule": true,

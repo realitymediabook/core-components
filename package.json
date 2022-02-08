@@ -16,7 +16,7 @@
     "@rollup/plugin-typescript": "^8.2.3",
     "@rollup/plugin-url": "^6.0.0",
     "@types/aframe": "^1.0.5",
-    "@types/three": "^0.130.0",
+    "@types/three": "^0.133.0",
     "cors": "^2.8.5",
     "express": "^4.17.1",
     "http-server": "^0.12.3",
@@ -26,7 +26,7 @@
     "rollup": "^2.47.0",
     "rollup-plugin-terser": "^7.0.2",
     "serve-index": "^1.9.1",
-    "three": "github:mozillareality/three.js#hubs/master",
+    "three": "github:mozillareality/three.js#hubs-patches-133",
     "typescript": "^4.3.5"
   }
 }

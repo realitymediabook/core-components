@@ -122,10 +122,10 @@
   dependencies:
     "@types/node" "*"
 
-"@types/three@^0.130.0":
-  "integrity" "sha512-7MKKxlEjHoAGTBRxEcDOjO4OvOrvUM6xtyjPiubNcU6bRPNmjNaV/PI9tiaXkk8cauZ9FuRbdCV4g0rQod+FkQ=="
-  "resolved" "https://registry.npmjs.org/@types/three/-/three-0.130.0.tgz"
-  "version" "0.130.0"
+"@types/three@^0.133.0":
+  "integrity" "sha512-XqBrP/+kbs+o0CYRhCVVE95v7FaL2bO5Z7+3VQJE0nEyjo+9LoLfeNgZITOnndKHxM+7ltEciAIR7uE0SZlsOg=="
+  "resolved" "https://registry.npmjs.org/@types/three/-/three-0.133.1.tgz"
+  "version" "0.133.1"
 
 "@types/tough-cookie@*":
   "integrity" "sha512-I99sngh224D0M7XgW1s120zxCt3VYQ3IQsuw3P3jbq5GG4yc79+ZjyKznyOGIQrflfylLgcfekeZW/vk0yng6A=="
@@ -822,7 +822,7 @@
   dependencies:
     "mime-db" "1.48.0"
 
-"mime@^1.6.0", "mime@1.6.0":
+"mime@^1.6.0":
   "integrity" "sha512-x0Vn8spI+wuJ1O6S7gnbaQg8Pxh4NNHb7KSINmEWKiPE4RKOplvijn+NkmYmmRgP68mc70j2EbeTFRsrswaQeg=="
   "resolved" "https://registry.npmjs.org/mime/-/mime-1.6.0.tgz"
   "version" "1.6.0"
@@ -831,6 +831,11 @@
   "integrity" "sha512-tqkh47FzKeCPD2PUiPB6pkbMzsCasjxAfC62/Wap5qrUWcb+sFasXUC5I3gYM5iBM8v/Qpn4UK0x+j0iHyFPDg=="
   "resolved" "https://registry.npmjs.org/mime/-/mime-2.5.2.tgz"
   "version" "2.5.2"
+
+"mime@1.6.0":
+  "integrity" "sha512-x0Vn8spI+wuJ1O6S7gnbaQg8Pxh4NNHb7KSINmEWKiPE4RKOplvijn+NkmYmmRgP68mc70j2EbeTFRsrswaQeg=="
+  "resolved" "https://registry.npmjs.org/mime/-/mime-1.6.0.tgz"
+  "version" "1.6.0"
 
 "mini-svg-data-uri@^1.2.3":
   "integrity" "sha512-+fA2oRcR1dJI/7ITmeQJDrYWks0wodlOz0pAEhKYJ2IVc1z0AnwJUsKY2fzFmPAM3Jo9J0rBx8JAA9QQSJ5PuA=="
@@ -1253,9 +1258,9 @@
     "source-map" "~0.7.2"
     "source-map-support" "~0.5.19"
 
-"three@*", "three@github:mozillareality/three.js#hubs/master":
-  "resolved" "git+ssh://git@github.com/mozillareality/three.js.git#494c88f493ca73c4521171bc849b2918f3a5c528"
-  "version" "0.111.0"
+"three@*", "three@github:mozillareality/three.js#hubs-patches-133":
+  "resolved" "git+ssh://git@github.com/mozillareality/three.js.git#17375caff569ad48e1bef3e673e33f0bdd5d9bab"
+  "version" "0.133.1"
 
 "toidentifier@1.0.0":
   "integrity" "sha512-yaOH/Pk/VEhBWWTlhI+qXxDFXlejDGcQipMlyxda9nthulaxLZUNcUqFxokp0vcYnvteJln5FNQDRrxj3YcbVw=="
