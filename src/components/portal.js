@@ -203,6 +203,16 @@ AFRAME.registerSystem('portal', {
       return urls
       //return this.roomData.cubemaps.length > number ? this.roomData.cubemaps[number] : null;
   },
+  getCubeMapByName: async function (name, waypoint) {
+    if (!waypoint || waypoint.length == 0) {
+        waypoint = "start"
+    }
+    let urls = ["Right","Left","Top","Bottom","Front","Back"].map(el => {
+        return "https://resources.realitymedia.digital/data/roomPanos/" + name + "/" + waypoint + "-" + el + ".png"
+    })
+    return urls
+    //return this.roomData.cubemaps.length > number ? this.roomData.cubemaps[number] : null;
+  },
   waitForFetch: function () {
      if (window.SSO.userInfo) return
      setTimeout(this.waitForFetch, 100); // try again in 100 milliseconds
@@ -359,6 +369,18 @@ AFRAME.registerComponent('portal', {
                 //const urls = [cubeMapPosX, cubeMapNegX, cubeMapPosY, cubeMapNegY, cubeMapPosZ, cubeMapNegZ];
                 const texture = new Promise((resolve, reject) =>
                   new THREE.CubeTextureLoader().load(urls, resolve, undefined, reject)
+                ).then(texture => {
+                    texture.format = THREE.RGBFormat;
+                    //this.material.uniforms.cubeMap.value = texture;
+                    //this.materials.map((mat) => {mat.userData.cubeMap = texture;})
+                    this.cubeMap = texture
+                }).catch(e => console.error(e))    
+            })
+        } else if (this.portalType == 4) {
+            this.system.getCubeMapByName(this.portalTarget, this.data.secondaryTarget).then( urls => {
+                //const urls = [cubeMapPosX, cubeMapNegX, cubeMapPosY, cubeMapNegY, cubeMapPosZ, cubeMapNegZ];
+                const texture = new Promise((resolve, reject) =>
+                    new THREE.CubeTextureLoader().load(urls, resolve, undefined, reject)
                 ).then(texture => {
                     texture.format = THREE.RGBFormat;
                     //this.material.uniforms.cubeMap.value = texture;
@@ -702,7 +724,7 @@ AFRAME.registerComponent('portal', {
         } else if (portalType === "roomName") {
             this.portalType = 4;
             this.portalTarget = portalTarget
-        } else {
+        } else {    
             this.portalType = 0;
             this.portalTarget = null
         } 
