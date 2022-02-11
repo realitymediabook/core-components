@@ -344,6 +344,8 @@ AFRAME.registerComponent('html-script', {
                         this.el.sceneEl.addEventListener('didConnectToNetworkedScene', this.setupNetworked)
                     }
                 }
+            }).catch(e => {
+                console.error("loadScript failed for script " + this.data.name + ": " + e)
             })
         }
         // if attached to a node with a media-loader component, this means we attached this component
@@ -373,6 +375,7 @@ AFRAME.registerComponent('html-script', {
 
     // handle "interact" events for clickable entities
     clicked: function(evt) {
+        console.log("clicked on html: ", evt)
         this.script.clicked(evt) 
     },
   
@@ -513,7 +516,7 @@ AFRAME.registerComponent('html-script', {
             this.script = null
             return;
         }
-        this.script = initScript(this.scriptData)
+        this.script = await initScript(this.scriptData)
         if (this.script){
             this.script.needsUpdate = true
             // this.script.webLayer3D.refresh(true)

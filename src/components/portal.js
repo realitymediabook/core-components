@@ -203,6 +203,16 @@ AFRAME.registerSystem('portal', {
       return urls
       //return this.roomData.cubemaps.length > number ? this.roomData.cubemaps[number] : null;
   },
+  getCubeMapByName: async function (name, waypoint) {
+    if (!waypoint || waypoint.length == 0) {
+        waypoint = "start"
+    }
+    let urls = ["Right","Left","Top","Bottom","Front","Back"].map(el => {
+        return "https://resources.realitymedia.digital/data/roomPanos/" + name + "/" + waypoint + "-" + el + ".png"
+    })
+    return urls
+    //return this.roomData.cubemaps.length > number ? this.roomData.cubemaps[number] : null;
+  },
   waitForFetch: function () {
      if (window.SSO.userInfo) return
      setTimeout(this.waitForFetch, 100); // try again in 100 milliseconds
@@ -258,6 +268,8 @@ AFRAME.registerComponent('portal', {
             this.parseNodeName()
         }
         
+        this.portalTitle = null;
+
         // wait until the scene loads to finish.  We want to make sure everything
         // is initialized
         let root = findAncestorWithComponent(this.el, "gltf-model-plus")
@@ -335,7 +347,7 @@ AFRAME.registerComponent('portal', {
         }
     },
 
-    setupPortal: function () {
+    setupPortal: async function () {
         // get rid of interactivity
         if (this.el.classList.contains("interactable")) {
             this.el.classList.remove("interactable")
@@ -364,8 +376,26 @@ AFRAME.registerComponent('portal', {
                     this.cubeMap = texture
                 }).catch(e => console.error(e))    
             })
-        } else if (this.portalType == 2 || this.portalType == 3) {    
-            this.cubeCamera = new CubeCameraWriter(0.1, 1000, 1024)
+        } else if (this.portalType == 4) {
+            this.system.getCubeMapByName(this.portalTarget, this.data.secondaryTarget).then( urls => {
+                //const urls = [cubeMapPosX, cubeMapNegX, cubeMapPosY, cubeMapNegY, cubeMapPosZ, cubeMapNegZ];
+                const texture = new Promise((resolve, reject) =>
+                    new THREE.CubeTextureLoader().load(urls, resolve, undefined, reject)
+                ).then(texture => {
+                    texture.format = THREE.RGBFormat;
+                    //this.material.uniforms.cubeMap.value = texture;
+                    //this.materials.map((mat) => {mat.userData.cubeMap = texture;})
+                    this.cubeMap = texture
+                }).catch(e => console.error(e))    
+            })
+        } else if (this.portalType == 2 || this.portalType == 3) { 
+            if (THREE.REVISION < 125) {   
+                this.cubeCamera = new CubeCameraWriter(0.1, 1000, 1024)
+            } else {
+                const cubeRenderTarget = new THREE.WebGLCubeRenderTarget( 1024, { encoding: THREE.sRGBEncoding, generateMipmaps: true } )
+                this.cubeCamera = new CubeCameraWriter(1, 100000, cubeRenderTarget)
+            }
+
             //this.cubeCamera.rotateY(Math.PI) // Face forwards
             if (this.portalType == 2) {
                 this.el.object3D.add(this.cubeCamera)
@@ -409,37 +439,39 @@ AFRAME.registerComponent('portal', {
         this.el.setAttribute('proximity-events', { radius: 4, Yoffset: this.Yoffset })
         this.el.addEventListener('proximityenter', () => this.open())
         this.el.addEventListener('proximityleave', () => this.close())
-    
-        var titleScriptData = {
-            width: this.data.textSize.x,
-            height: this.data.textSize.y,
-            message: this.data.text
-        }
-        const portalTitle = htmlComponents["PortalTitle"]
-        // const portalSubtitle = htmlComponents["PortalSubtitle"]
 
-        this.portalTitle = portalTitle(titleScriptData)
-        // this.portalSubtitle = portalSubtitle(subtitleScriptData)
-
-        this.el.setObject3D('portalTitle', this.portalTitle.webLayer3D)
-        let size = this.portalTitle.getSize()
-        let titleScaleX = scaleX / this.data.textScale
-        let titleScaleY = scaleY / this.data.textScale
-        let titleScaleZ = scaleZ / this.data.textScale
-
-        this.portalTitle.webLayer3D.scale.x /= titleScaleX
-        this.portalTitle.webLayer3D.scale.y /= titleScaleY
-        this.portalTitle.webLayer3D.scale.z /= titleScaleZ
-
-        this.portalTitle.webLayer3D.position.x = this.data.textPosition.x / scaleX
-        this.portalTitle.webLayer3D.position.y = 0.5 + size.height / 2 + this.data.textPosition.y / scaleY
-        this.portalTitle.webLayer3D.position.z = this.data.textPosition.z / scaleY
-        // this.el.setObject3D('portalSubtitle', this.portalSubtitle.webLayer3D)
-        // this.portalSubtitle.webLayer3D.position.x = 1
         this.el.setObject3D.matrixAutoUpdate = true
-        this.portalTitle.webLayer3D.matrixAutoUpdate = true
-        // this.portalSubtitle.webLayer3D.matrixAutoUpdate = true
+    
+        if (this.data.text && this.data.text.length > 0) {
+            var titleScriptData = {
+                width: this.data.textSize.x,
+                height: this.data.textSize.y,
+                message: this.data.text
+            }
+            const portalTitle = htmlComponents["PortalTitle"]
+            // const portalSubtitle = htmlComponents["PortalSubtitle"]
 
+            this.portalTitle = await portalTitle(titleScriptData)
+            // this.portalSubtitle = portalSubtitle(subtitleScriptData)
+
+            this.el.setObject3D('portalTitle', this.portalTitle.webLayer3D)
+            let size = this.portalTitle.getSize()
+            let titleScaleX = scaleX / this.data.textScale
+            let titleScaleY = scaleY / this.data.textScale
+            let titleScaleZ = scaleZ / this.data.textScale
+
+            this.portalTitle.webLayer3D.scale.x /= titleScaleX
+            this.portalTitle.webLayer3D.scale.y /= titleScaleY
+            this.portalTitle.webLayer3D.scale.z /= titleScaleZ
+
+            this.portalTitle.webLayer3D.position.x = this.data.textPosition.x / scaleX
+            this.portalTitle.webLayer3D.position.y = 0.5 + size.height / 2 + this.data.textPosition.y / scaleY
+            this.portalTitle.webLayer3D.position.z = this.data.textPosition.z / scaleY
+            // this.el.setObject3D('portalSubtitle', this.portalSubtitle.webLayer3D)
+            // this.portalSubtitle.webLayer3D.position.x = 1
+            this.portalTitle.webLayer3D.matrixAutoUpdate = true
+            // this.portalSubtitle.webLayer3D.matrixAutoUpdate = true
+        }
         // this.materials.map((mat) => {
         //     mat.userData.radius = this.radius
         //     mat.userData.ringColor = this.color
@@ -564,8 +596,10 @@ AFRAME.registerComponent('portal', {
         //this.material.uniforms.time.value = time / 1000
         if (!this.materials) { return }
 
-        this.portalTitle.tick(time)
-        // this.portalSubtitle.tick(time)
+        if (this.portalTitle) {
+            this.portalTitle.tick(time)
+            // this.portalSubtitle.tick(time)
+        }
 
         this.materials.map((mat) => {
             mat.userData.radius = this.radius
@@ -587,7 +621,7 @@ AFRAME.registerComponent('portal', {
           }
           const dist = Math.abs(worldCameraPos.z);
 
-          if (this.portalType == 1 && dist < 0.25) {
+          if ((this.portalType == 1 || this.portalType == 4) && dist < 0.25) {
               if (!this.locationhref) {
                 console.log("set window.location.href to " + this.other)
                 this.locationhref = this.other
@@ -628,6 +662,14 @@ AFRAME.registerComponent('portal', {
             }
             if (this.portalType == 3) {
                 resolve ("#" + this.portalTarget)
+            }
+            if (this.portalType == 4) {
+                let url = window.location.origin + "/" + this.portalTarget;
+                if (this.data.secondaryTarget && this.data.secondaryTarget.length > 0) {
+                    resolve(url + "#" + this.data.secondaryTarget)
+                } else {
+                    resolve(url) 
+                }
             }
 
             // now find the portal within the room.  The portals should come in pairs with the same portalTarget
@@ -679,7 +721,10 @@ AFRAME.registerComponent('portal', {
         } else if (portalType === "waypoint") {
             this.portalType = 3;
             this.portalTarget = portalTarget
-        } else {
+        } else if (portalType === "roomName") {
+            this.portalType = 4;
+            this.portalTarget = portalTarget
+        } else {    
             this.portalType = 0;
             this.portalTarget = null
         } 

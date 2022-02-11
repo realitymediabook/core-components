@@ -195,36 +195,63 @@ class MaterialModifier {
 
         let extendMaterial = new Function( 'BaseClass', 'uniforms', 'vertexShader', 'fragmentShader', 'cloneUniforms',`
 
-            var cls = function ${ClassName}( params ){
-
-                BaseClass.call( this, params );
-
-                this.uniforms = cloneUniforms( uniforms );
-
-                this.vertexShader = vertexShader;
-                this.fragmentShader = fragmentShader;
-                this.type = '${ClassName}';
-
-                this.setValues( params );
-
+            let cls = class ${ClassName} extends BaseClass {
+                constructor( params ){
+                    super(params)
+    
+                    this.uniforms = cloneUniforms( uniforms );
+    
+                    this.vertexShader = vertexShader;
+                    this.fragmentShader = fragmentShader;
+                    this.type = '${ClassName}';
+    
+                    this.setValues( params );
+                }
+    
+                copy( source ){
+    
+                    super.copy(source );
+    
+                    this.uniforms = Object.assign( {}, source.uniforms );
+                    this.vertexShader = vertexShader;
+                    this.fragmentShader = fragmentShader;
+                    this.type = '${ClassName}';
+    
+                    return this;
+    
+                }
+    
             }
+            // var cls = function ${ClassName}( params ){
 
-            cls.prototype = Object.create( BaseClass.prototype );
-            cls.prototype.constructor = cls;
-            cls.prototype.${ def.TypeCheck } = true;
+            //     //BaseClass.prototype.constructor.call( this, params );
 
-            cls.prototype.copy = function( source ){
+            //     this.uniforms = cloneUniforms( uniforms );
 
-                BaseClass.prototype.copy.call( this, source );
+            //     this.vertexShader = vertexShader;
+            //     this.fragmentShader = fragmentShader;
+            //     this.type = '${ClassName}';
 
-                this.uniforms = Object.assign( {}, source.uniforms );
-                this.vertexShader = vertexShader;
-                this.fragmentShader = fragmentShader;
-                this.type = '${ClassName}';
+            //     this.setValues( params );
 
-                return this;
+            // }
 
-            }
+            // cls.prototype = Object.create( BaseClass.prototype );
+            // cls.prototype.constructor = cls;
+            // cls.prototype.${ def.TypeCheck } = true;
+
+            // cls.prototype.copy = function( source ){
+
+            //     BaseClass.prototype.copy.call( this, source );
+
+            //     this.uniforms = Object.assign( {}, source.uniforms );
+            //     this.vertexShader = vertexShader;
+            //     this.fragmentShader = fragmentShader;
+            //     this.type = '${ClassName}';
+
+            //     return this;
+
+            // }
 
             return cls;
 
