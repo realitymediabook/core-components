@@ -98,12 +98,12 @@ AFRAME.registerComponent('immersive-360', {
     this.mesh.renderOrder = APP.RENDER_ORDER.CURSOR - 0.1
   },
   remove: function() {
+    this.ball.geometry.dispose()
+    this.ball.geometry = null
+    this.ball.material.dispose()
+    this.ball.material = null
     this.el.removeObject3D("ball")
-    // this.ball.geometry.dispose()
-    // this.ball.geometry = null
-    // this.ball.material.dispose()
-    // this.ball.material = null
-    // delete this.ball
+    this.ball = null
   },
   tick: function (time) {
     if (this.mesh && ballTex) {

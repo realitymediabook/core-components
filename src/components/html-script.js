@@ -38,7 +38,10 @@ import {vueComponents as htmlComponents} from "https://resources.realitymedia.di
     },
   })
   
-
+const once = {
+    once : true
+};
+  
 AFRAME.registerComponent('html-script', {
     schema: {
         // name must follow the pattern "*_componentName"
@@ -72,7 +75,7 @@ AFRAME.registerComponent('html-script', {
         let root = findAncestorWithComponent(this.el, "gltf-model-plus")
         root && root.addEventListener("model-loaded", (ev) => { 
             this.createScript()
-        });
+        }, once);
 
         //this.createScript();
     },
@@ -534,15 +537,16 @@ AFRAME.registerComponent('html-script', {
         if (this.script.isInteractive) {
             this.simpleContainer.object3D.removeEventListener('interact', this.clicked)
         }
+
+        window.APP.scene.removeEventListener('didConnectToNetworkedScene', this.setupNetworked)
+
         this.el.removeChild(this.simpleContainer)
         this.simpleContainer.removeObject3D("weblayer3d")
         this.simpleContainer = null
 
-        // if (this.script.isNetworked) {
-        //     this.el.sceneEl.removeChild(this.netEntity)
-        //     this.netEntity = null;
-        //     this.stateSync = null;
-        // }
+        if (this.script.isNetworked && this.netEntity.parentNode) {
+            this.netEntity.parentNode.removeChild(this.netEntity)
+        }
         this.script.destroy()
         this.script = null
     }

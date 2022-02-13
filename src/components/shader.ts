@@ -111,6 +111,10 @@ export function updateWithShader(shaderDef: ShaderExtension, el: any, target: st
 const vec = new THREE.Vector3()
 const forward = new THREE.Vector3(0, 0, 1)
 
+const once = {
+    once : true
+};
+
 AFRAME.registerComponent('shader', {
     materials: null as (THREE.Material & ExtendedMaterial)[] | null,  
     shaderDef: null as ShaderExtension | null,
@@ -191,7 +195,7 @@ AFRAME.registerComponent('shader', {
                 updateMaterials()
             }
         }
-        root && root.addEventListener("model-loaded", initializer);
+        root && (root as HTMLElement).addEventListener("model-loaded", initializer, once);
         this.shaderDef = shaderDef
     },
 

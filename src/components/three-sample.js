@@ -205,6 +205,10 @@ let child = {
     // is destroyed
     remove: function () {
         this.simpleContainer.removeObject3D("box")
+        this.box.geometry.dispose()
+        this.box.material.dispose()
+        this.box2.geometry.dispose()
+        this.box2.material.dispose()
         this.removeTemplate()
     },
 

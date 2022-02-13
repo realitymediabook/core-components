@@ -154,6 +154,10 @@ loader.load(goldnorm, (norm) => {
 //     }
 // }
   
+const once = {
+    once : true
+};
+
 AFRAME.registerSystem('portal', {
   dependencies: ['fader-plus'],
   init: function () {
@@ -278,7 +282,7 @@ AFRAME.registerComponent('portal', {
         let root = findAncestorWithComponent(this.el, "gltf-model-plus")
         root && root.addEventListener("model-loaded", (ev) => { 
             this.initialize()
-        });
+        }, once);
     },
 
     initialize: async function () {
@@ -417,13 +421,13 @@ AFRAME.registerComponent('portal', {
                     this.cubeMap = this.cubeCamera.renderTarget.texture
                 }
             }
-            this.el.sceneEl.addEventListener('model-loaded', () => {
+            //this.el.sceneEl.addEventListener('model-loaded', () => {
                 showRegionForObject(this.el)
                 this.cubeCamera.update(this.el.sceneEl.renderer, this.el.sceneEl.object3D)
                 // this.cubeCamera.renderTarget.texture.generateMipmaps = true
                 // this.cubeCamera.renderTarget.texture.needsUpdate = true
                 hiderRegionForObject(this.el)
-            })
+            //}, once)
         }
 
         let scaleM = this.el.object3DMap["mesh"].scale
@@ -487,6 +491,11 @@ AFRAME.registerComponent('portal', {
 
         this.portalTitle.destroy()
         this.portalTitle = null
+
+        if (this.cubeMap) {
+            this.cubeMap.dispose()
+            this.cubeMap = null
+        } 
     },
 
         //   replaceMaterial: function (newMaterial) {

@@ -264,11 +264,9 @@ export function interactiveComponentTemplate(componentName) {
             this.el.removeChild(this.simpleContainer)
             this.simpleContainer = null
     
-            // if (this.isNetworked) {
-            //     this.el.sceneEl.removeChild(this.netEntity)
-            //     this.netEntity = null;
-            //     this.stateSync = null;
-            // }    
+            if (this.isNetworked && this.netEntity.parentNode) {
+                this.netEntity.parentNode.removeChild(this.netEntity)
+            }    
         },
 
         internalInit: function () {
