@@ -257,6 +257,20 @@ export function interactiveComponentTemplate(componentName) {
             });
         },
 
+        removeTemplate: function () {
+            if (this.isInteractive) {
+                this.simpleContainer.object3D.removeEventListener('interact', this.clicked)
+            }
+            this.el.removeChild(this.simpleContainer)
+            this.simpleContainer = null
+    
+            // if (this.isNetworked) {
+            //     this.el.sceneEl.removeChild(this.netEntity)
+            //     this.netEntity = null;
+            //     this.stateSync = null;
+            // }    
+        },
+
         internalInit: function () {
             // each time we load a component we will possibly create
             // a new networked component.  This is fine, since the networked Id 

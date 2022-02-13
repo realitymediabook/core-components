@@ -16,6 +16,7 @@ if ((process.env.BUILD !== 'production')) {
 
 export default ['index', 'main-room'].map((name, index) => ({
     input: `src/rooms/${name}.ts`,
+    context: 'window',
     output: [{
         file: `./build/${name}.js`,
         format: 'es',

@@ -22,7 +22,13 @@ window.APP.writeWayPointTextures = function(names) {
                 // }
                 // if (!cubecam) {
                     console.log("didn't find waypoint with cubeCamera '" + names[k] + "', creating one.")                    // create a cube map camera and render the view!
-                    cubecam = new CubeCameraWriter(0.1, 1000, SIZE)
+                    if (THREE.REVISION < 125) {   
+                        cubecam = new CubeCameraWriter(0.1, 1000, SIZE)
+                    } else {
+                        const cubeRenderTarget = new THREE.WebGLCubeRenderTarget( SIZE, { encoding: THREE.sRGBEncoding, generateMipmaps: true } )
+                        cubecam = new CubeCameraWriter(1, 100000, cubeRenderTarget)
+                    }
+        
                     cubecam.position.y = 1.6
                     cubecam.needsUpdate = true
                     waypoints[i].object3D.add(cubecam)
@@ -110,13 +116,13 @@ class CubeCameraWriter extends THREE.CubeCamera {
 
     renderCapture (cubeSide) {
         var imageData;
-        var pixels3 = new Uint8Array(3 * TARGETWIDTH * TARGETHEIGHT);
+        var pixels3 = new Uint8Array(4 * TARGETWIDTH * TARGETHEIGHT);
         var renderer = window.APP.scene.renderer;
 
         renderer.readRenderTargetPixels(this.renderTarget, 0, 0, TARGETWIDTH,TARGETHEIGHT, pixels3, cubeSide);
 
         //pixels3 = this.flipPixelsVertically(pixels3, TARGETWIDTH, TARGETHEIGHT);
-        var pixels4 = this.convert3to4(pixels3, TARGETWIDTH, TARGETHEIGHT);
+        var pixels4 = pixels3;  //this.convert3to4(pixels3, TARGETWIDTH, TARGETHEIGHT);
         imageData = new ImageData(new Uint8ClampedArray(pixels4), TARGETWIDTH, TARGETHEIGHT);
 
         // Copy pixels into canvas.

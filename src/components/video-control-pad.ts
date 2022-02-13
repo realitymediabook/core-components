@@ -32,7 +32,7 @@ AFRAME.registerComponent('video-control-pad', {
             this.initialize()
         });
     },
-
+    
     initialize: function () {
         let v = this.el.sceneEl?.object3D.getObjectByName(this.data.target) as AObject3D
         if (v == undefined) {

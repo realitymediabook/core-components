@@ -35,7 +35,6 @@ import goldao from '../assets/Metal_Gold_Foil_002_OCC.jpg'
 
 import CubeCameraWriter from "../utils/writeCubeMap.js";
 
-import { Marble1Shader } from '../shaders/marble1'
 import { replaceMaterial as replaceWithShader} from './shader'
 
 const worldPos = new THREE.Vector3()
@@ -186,10 +185,14 @@ AFRAME.registerSystem('portal', {
 //     this.roomData.textures = []
 //   },
   getRoomURL: async function (number) {
-      this.waitForFetch()
-      //return this.roomData.rooms.length > number ? "https://xr.realitymedia.digital/" + this.roomData.rooms[number] : null;
-      let url = window.SSO.userInfo.rooms.length > number ? "https://xr.realitymedia.digital/" + window.SSO.userInfo.rooms[number] : null;
+      let hub_id = this.getRoomHubId(number)
+
+      let url = window.SSO.userInfo.rooms.length > number ? "https://xr.realitymedia.digital/" + hub_id : null;
       return url
+  },
+  getRoomHubId: async function (number) {
+    this.waitForFetch()
+    return window.SSO.userInfo.rooms[number]
   },
   getCubeMap: async function (number, waypoint) {
       this.waitForFetch()
@@ -478,6 +481,14 @@ AFRAME.registerComponent('portal', {
         //     mat.userData.cubeMap = this.cubeMap
         // })
     },
+
+    remove: function () {
+        this.el.removeObject3D("portalTitle")
+
+        this.portalTitle.destroy()
+        this.portalTitle = null
+    },
+
         //   replaceMaterial: function (newMaterial) {
 //     let target = this.data.materialTarget
 //     if (target && target.length == 0) {target=null}
@@ -621,12 +632,36 @@ AFRAME.registerComponent('portal', {
           }
           const dist = Math.abs(worldCameraPos.z);
 
+          // window.APP.utils.changeToHub
           if ((this.portalType == 1 || this.portalType == 4) && dist < 0.25) {
               if (!this.locationhref) {
-                console.log("set window.location.href to " + this.other)
                 this.locationhref = this.other
-                window.location.href = this.other
-              }
+                if (!APP.store.state.preferences.fastRoomSwitching) {
+                    console.log("set window.location.href to " + this.other)
+                    window.location.href = this.other
+                } else {
+                    let wayPoint = this.data.secondaryTarget
+                    const environmentScene = document.querySelector("#environment-scene");
+                    let goToWayPoint = function() {
+                        if (wayPoint && wayPoint.length > 0) {
+                            console.log("FAST ROOM SWITCH INCLUDES waypoint: setting hash to " + wayPoint)
+                            window.location.hash = wayPoint
+                        }
+                    }
+                    console.log("FAST ROOM SWITCH. going to " + this.hub_id)
+                    if (this.hubId === APP.hub.hub_id) {
+                        console.log("Same Room")
+                        goToWayPoint()
+                    } else {
+                        window.changeHub(this.hub_id).then(() => {
+                            // environmentScene.addEventListener("model-loaded", () => {
+                            //     console.log("Environment scene has loaded");
+                                goToWayPoint()
+                            // })
+                        })
+                    }
+                }
+            }
           } else if (this.portalType == 2 && dist < 0.25) {
             this.system.teleportTo(this.other.object3D)
           } else if (this.portalType == 3) {
@@ -650,21 +685,26 @@ AFRAME.registerComponent('portal', {
         return new Promise((resolve) => {
             if (this.portalType == 0) resolve(null)
             if (this.portalType  == 1) {
-                // the target is another room, resolve with the URL to the room
-                this.system.getRoomURL(this.portalTarget).then(url => { 
-                    if (this.data.secondaryTarget && this.data.secondaryTarget.length > 0) {
-                        resolve(url + "#" + this.data.secondaryTarget)
-                    } else {
-                        resolve(url) 
-                    }
+                // first wait for the hub_id
+                this.system.getRoomHubId(this.portalTarget).then(hub_id => {
+                    this.hub_id = hub_id
+            
+                    // the target is another room, resolve with the URL to the room
+                    this.system.getRoomURL(this.portalTarget).then(url => { 
+                        if (this.data.secondaryTarget && this.data.secondaryTarget.length > 0) {
+                            resolve(url + "#" + this.data.secondaryTarget)
+                        } else {
+                            resolve(url) 
+                        }
+                    })
                 })
-                return
             }
             if (this.portalType == 3) {
                 resolve ("#" + this.portalTarget)
             }
             if (this.portalType == 4) {
                 let url = window.location.origin + "/" + this.portalTarget;
+                this.hub_id = this.portalTarget
                 if (this.data.secondaryTarget && this.data.secondaryTarget.length > 0) {
                     resolve(url + "#" + this.data.secondaryTarget)
                 } else {

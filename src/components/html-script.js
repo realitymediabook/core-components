@@ -526,13 +526,23 @@ AFRAME.registerComponent('html-script', {
         }
     },
 
+    remove: function () {
+        this.destroyScript()
+    },
+
     destroyScript: function () {
         if (this.script.isInteractive) {
             this.simpleContainer.object3D.removeEventListener('interact', this.clicked)
         }
         this.el.removeChild(this.simpleContainer)
+        this.simpleContainer.removeObject3D("weblayer3d")
         this.simpleContainer = null
 
+        // if (this.script.isNetworked) {
+        //     this.el.sceneEl.removeChild(this.netEntity)
+        //     this.netEntity = null;
+        //     this.stateSync = null;
+        // }
         this.script.destroy()
         this.script = null
     }

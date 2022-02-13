@@ -97,6 +97,14 @@ AFRAME.registerComponent('immersive-360', {
     // Render OVER the scene but UNDER the cursor
     this.mesh.renderOrder = APP.RENDER_ORDER.CURSOR - 0.1
   },
+  remove: function() {
+    this.el.removeObject3D("ball")
+    // this.ball.geometry.dispose()
+    // this.ball.geometry = null
+    // this.ball.material.dispose()
+    // this.ball.material = null
+    // delete this.ball
+  },
   tick: function (time) {
     if (this.mesh && ballTex) {
       this.ball.position.y = this.ball.userData.floatY + Math.cos((time + this.ball.userData.timeOffset)/1000 * 3 ) * 0.02;
