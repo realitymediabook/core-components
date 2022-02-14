@@ -519,7 +519,7 @@ AFRAME.registerComponent('html-script', {
             this.script = null
             return;
         }
-        this.script = await initScript(this.scriptData)
+        this.script = initScript(this.scriptData)
         if (this.script){
             this.script.needsUpdate = true
             // this.script.webLayer3D.refresh(true)

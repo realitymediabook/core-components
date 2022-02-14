@@ -189,7 +189,7 @@ AFRAME.registerSystem('portal', {
 //     this.roomData.textures = []
 //   },
   getRoomURL: async function (number) {
-      let hub_id = this.getRoomHubId(number)
+      let hub_id = await this.getRoomHubId(number)
 
       let url = window.SSO.userInfo.rooms.length > number ? "https://xr.realitymedia.digital/" + hub_id : null;
       return url
