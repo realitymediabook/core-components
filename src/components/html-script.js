@@ -83,7 +83,7 @@ AFRAME.registerComponent('html-script', {
         this.loading = true;
         this.spinnerPlane = new THREE.Mesh( spinnerGeometry, spinnerMaterial );
         this.spinnerPlane.matrixAutoUpdate = true
-
+        
         if (!this.fullName || this.fullName.length == 0) {
             this.parseNodeName();
         } else {
@@ -212,8 +212,6 @@ AFRAME.registerComponent('html-script', {
                     c.visible = false;
                 }
 
-                this.el.setObject3D("spinner", this.spinnerPlane)
-
                 // make sure "isStatic" is correct;  can't be static if either interactive or networked
                 if (this.script.isStatic && (this.script.isInteractive || this.script.isNetworked)) {
                     this.script.isStatic = false;
@@ -221,6 +219,8 @@ AFRAME.registerComponent('html-script', {
                             
                 // add in our container
                 this.el.appendChild(this.simpleContainer)
+
+                this.el.setObject3D("spinner", this.spinnerPlane)
 
                 // TODO:  we are going to have to make sure this works if 
                 // the script is ON an interactable (like an image)
