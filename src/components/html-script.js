@@ -6,7 +6,7 @@
  */
 import { findAncestorWithComponent } from "../utils/scene-graph";
 import {vueComponents as htmlComponents} from "https://resources.realitymedia.digital/vue-apps/dist/hubs.js";
-import spinnerImage from "../assets/Reload-1s-200px.png"
+import spinnerImage from "../assets/Spinner-1s-200px.png"
 
 // load and setup all the bits of the textures for the door
 const loader = new THREE.TextureLoader()
@@ -83,7 +83,7 @@ AFRAME.registerComponent('html-script', {
         this.loading = true;
         this.spinnerPlane = new THREE.Mesh( spinnerGeometry, spinnerMaterial );
         this.spinnerPlane.matrixAutoUpdate = true
-        this.spinnerPlane.position.z = -0.0001
+        this.spinnerPlane.position.z = 0.01
         if (!this.fullName || this.fullName.length == 0) {
             this.parseNodeName();
         } else {
