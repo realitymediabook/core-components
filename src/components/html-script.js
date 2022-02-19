@@ -12,8 +12,7 @@ import spinnerImage from "../assets/Spinner-1s-200px.png"
 const loader = new THREE.TextureLoader()
 const spinnerGeometry = new THREE.PlaneGeometry( 1, 1 );
 const spinnerMaterial = new THREE.MeshStandardMaterial({
-    transparent: true,
-    color: 0xffffff,
+    transparent: true
 })
 
 loader.load(spinnerImage, (color) => {
