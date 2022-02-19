@@ -454,6 +454,7 @@ AFRAME.registerComponent('portal', {
         // this.Yoffset = -(this.el.object3D.position.y - 1.6)
         this.Yoffset = -(scaleY/2 - 1.6)
 
+        this.close()
         this.el.setAttribute('proximity-events', { radius: 4, Yoffset: this.Yoffset })
         this.el.addEventListener('proximityenter', () => this.open())
         this.el.addEventListener('proximityleave', () => this.close())
