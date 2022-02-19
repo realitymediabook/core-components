@@ -502,11 +502,12 @@ AFRAME.registerComponent('portal', {
         this.el.sceneEl.removeEventListener('updatePortals', this.updatePortal)
         this.el.sceneEl.removeEventListener('model-loaded', this.updatePortal)
 
-        this.el.removeObject3D("portalTitle")
+        if (this.portalTitle) {
+            this.el.removeObject3D("portalTitle")
 
-        this.portalTitle.destroy()
-        this.portalTitle = null
-
+            this.portalTitle.destroy()
+            this.portalTitle = null
+        }
         if (this.cubeMap) {
             this.cubeMap.dispose()
             this.cubeMap = null
