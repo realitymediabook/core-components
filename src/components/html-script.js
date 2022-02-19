@@ -6,6 +6,20 @@
  */
 import { findAncestorWithComponent } from "../utils/scene-graph";
 import {vueComponents as htmlComponents} from "https://resources.realitymedia.digital/vue-apps/dist/hubs.js";
+import spinnerImage from "../assets/Spinner-1s-200px.png"
+
+// load and setup all the bits of the textures for the door
+const loader = new THREE.TextureLoader()
+const spinnerGeometry = new THREE.PlaneGeometry( 1, 1 );
+const spinnerMaterial = new THREE.MeshStandardMaterial({
+    transparent: true,
+    color: 0xffffff,
+})
+
+loader.load(spinnerImage, (color) => {
+    spinnerMaterial.map = color;
+    spinnerMaterial.needsUpdate = true
+})
 
 // var htmlComponents;
 // var scriptPromise;
@@ -65,6 +79,9 @@ AFRAME.registerComponent('html-script', {
             parameter3: this.data.parameter3,
             parameter4: this.data.parameter4
         }
+
+        this.loading = true;
+        this.spinnerPlane = new THREE.Mesh( spinnerGeometry, spinnerMaterial );
 
         if (!this.fullName || this.fullName.length == 0) {
             this.parseNodeName();
@@ -182,6 +199,9 @@ AFRAME.registerComponent('html-script', {
                     const {width: wsize, height: hsize} = this.script.getSize()
                     var scale = Math.min(width / wsize, height / hsize)
                     this.simpleContainer.setAttribute("scale", { x: scale, y: scale, z: scale});
+
+                    const spinnerScale = Math.min(width,height) * 0.5
+                    this.spinnerPlane.scale.set(spinnerScale, spinnerScale, 1)
                 }
 
                 // there will be one element already, the cube we created in blender
@@ -190,6 +210,8 @@ AFRAME.registerComponent('html-script', {
                 for (const c of this.el.object3D.children) {
                     c.visible = false;
                 }
+
+                this.el.setObject3D("spinner", this.spinnerPlane)
 
                 // make sure "isStatic" is correct;  can't be static if either interactive or networked
                 if (this.script.isStatic && (this.script.isInteractive || this.script.isNetworked)) {
@@ -412,6 +434,9 @@ AFRAME.registerComponent('html-script', {
     tick: function (time) {
         if (!this.script) return
 
+        if (this.loading) {
+            this.spinnerPlane.rotation.z += 0.01
+        }
         if (this.script.isInteractive) {
             // more or less copied from "hoverable-visuals.js" in hubs
             const toggling = this.el.sceneEl.systems["hubs-systems"].cursorTogglingSystem;
@@ -535,6 +560,8 @@ AFRAME.registerComponent('html-script', {
                 // when a script finishes getting ready, tell the 
                 // portals to update themselves
                 this.el.sceneEl.emit('updatePortals') 
+                this.loading = false;
+                this.el.removeObject3D("spinner")
             })
         } else {
             console.warn("'html-script' component failed to initialize script for " + this.componentName);
