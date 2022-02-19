@@ -11,7 +11,7 @@ import spinnerImage from "../assets/Spinner-1s-200px.png"
 // load and setup all the bits of the textures for the door
 const loader = new THREE.TextureLoader()
 const spinnerGeometry = new THREE.PlaneGeometry( 1, 1 );
-const spinnerMaterial = new THREE.MeshStandardMaterial({
+const spinnerMaterial = new THREE.MeshBasicMaterial({
     transparent: true
 })
 
