@@ -82,7 +82,8 @@ AFRAME.registerComponent('html-script', {
 
         this.loading = true;
         this.spinnerPlane = new THREE.Mesh( spinnerGeometry, spinnerMaterial );
-
+        this.spinnerPlane.matrixAutoUpdate = true
+        
         if (!this.fullName || this.fullName.length == 0) {
             this.parseNodeName();
         } else {
