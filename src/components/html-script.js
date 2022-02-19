@@ -519,11 +519,23 @@ AFRAME.registerComponent('html-script', {
             this.script = null
             return;
         }
-        this.script = initScript(this.scriptData)
+
+        try {
+            this.script = new initScript(this.scriptData);
+        } catch (e) {
+            console.error("error creating script for " + this.componentName, e);
+            this.script = null
+        }
         if (this.script){
             this.script.needsUpdate = true
             // this.script.webLayer3D.refresh(true)
             // this.script.webLayer3D.update(true)
+
+            this.script.readyPromise?.then(() => {
+                // when a script finishes getting ready, tell the 
+                // portals to update themselves
+                this.el.sceneEl.emit('updatePortals') 
+            })
         } else {
             console.warn("'html-script' component failed to initialize script for " + this.componentName);
         }

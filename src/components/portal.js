@@ -264,6 +264,8 @@ AFRAME.registerComponent('portal', {
         // A-Frame is supposed to do this by default but doesn't seem to?
         this.system = window.APP.scene.systems.portal 
 
+        this.updatePortal = this.updatePortal.bind(this)
+
         if (this.data.portalType.length > 0 ) {
             this.setPortalInfo(this.data.portalType, this.data.portalTarget, this.data.color)
         } else {
@@ -354,6 +356,19 @@ AFRAME.registerComponent('portal', {
         }
     },
 
+    updatePortal: async function () {
+        // no-op for portals that use pre-rendered cube maps
+        if (this.portalType == 2 || this.portalType == 3) { 
+            //this.el.sceneEl.addEventListener('model-loaded', () => {
+                showRegionForObject(this.el)
+                this.cubeCamera.update(this.el.sceneEl.renderer, this.el.sceneEl.object3D)
+                // this.cubeCamera.renderTarget.texture.generateMipmaps = true
+                // this.cubeCamera.renderTarget.texture.needsUpdate = true
+                hiderRegionForObject(this.el)
+            //}, once)
+        }
+    },
+
     setupPortal: async function () {
         // get rid of interactivity
         if (this.el.classList.contains("interactable")) {
@@ -421,13 +436,9 @@ AFRAME.registerComponent('portal', {
                     this.cubeMap = this.cubeCamera.renderTarget.texture
                 }
             }
-            //this.el.sceneEl.addEventListener('model-loaded', () => {
-                showRegionForObject(this.el)
-                this.cubeCamera.update(this.el.sceneEl.renderer, this.el.sceneEl.object3D)
-                // this.cubeCamera.renderTarget.texture.generateMipmaps = true
-                // this.cubeCamera.renderTarget.texture.needsUpdate = true
-                hiderRegionForObject(this.el)
-            //}, once)
+            this.updatePortal()
+            this.el.sceneEl.addEventListener('updatePortals', this.updatePortal)
+            this.el.sceneEl.addEventListener('model-loaded', this.updatePortal)
         }
 
         let scaleM = this.el.object3DMap["mesh"].scale
@@ -487,6 +498,9 @@ AFRAME.registerComponent('portal', {
     },
 
     remove: function () {
+        this.el.sceneEl.removeEventListener('updatePortals', this.updatePortal)
+        this.el.sceneEl.removeEventListener('model-loaded', this.updatePortal)
+
         this.el.removeObject3D("portalTitle")
 
         this.portalTitle.destroy()
