@@ -83,7 +83,7 @@ AFRAME.registerComponent('html-script', {
         this.loading = true;
         this.spinnerPlane = new THREE.Mesh( spinnerGeometry, spinnerMaterial );
         this.spinnerPlane.matrixAutoUpdate = true
-        this.spinnerPlane.position.z = -0.01
+        this.spinnerPlane.position.z = -0.0001
         if (!this.fullName || this.fullName.length == 0) {
             this.parseNodeName();
         } else {
@@ -201,7 +201,7 @@ AFRAME.registerComponent('html-script', {
                     var scale = Math.min(width / wsize, height / hsize)
                     this.simpleContainer.setAttribute("scale", { x: scale, y: scale, z: scale});
 
-                    const spinnerScale = Math.min(width,height) * 0.5
+                    const spinnerScale = Math.min(width,height) * 0.25
                     this.spinnerPlane.scale.set(spinnerScale, spinnerScale, 1)
                 }
 
