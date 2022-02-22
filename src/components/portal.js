@@ -36,6 +36,7 @@ import goldao from '../assets/Metal_Gold_Foil_002_OCC.jpg'
 import CubeCameraWriter from "../utils/writeCubeMap.js";
 
 import { replaceMaterial as replaceWithShader} from './shader'
+import { Matrix4 } from "three";
 
 const worldPos = new THREE.Vector3()
 const worldCameraPos = new THREE.Vector3()
@@ -570,11 +571,19 @@ AFRAME.registerComponent('portal', {
         // attached to an image in spoke.  This is the only way we allow buidling a 
         // door around it
         let scaleM = this.el.object3DMap["mesh"].scale
-        let scaleI = this.el.object3D.scale
-        var width = scaleM.x * scaleI.x
-        var height = scaleM.y * scaleI.y
-        var depth = 1.0; //  scaleM.z * scaleI.z
+        let rot = new THREE.Quaternion()
+        let scaleW = new THREE.Vector3()
+        let pos = new THREE.Vector3()
+        this.el.object3D.matrixWorld.decompose(pos, rot, scaleW)
 
+        var width = scaleW.x * scaleM.x
+        var height = scaleW.y * scaleM.y
+        var depth = scaleW.z * scaleM.z
+        
+        // let scaleI = this.el.object3D.scale
+        // var width = scaleM.x * scaleI.x
+        // var height = scaleM.y * scaleI.y
+        // var depth = 1.0; //  scaleM.z * scaleI.z
         const environmentMapComponent = this.el.sceneEl.components["environment-map"];
 
         // let above = new THREE.Mesh(
@@ -589,7 +598,7 @@ AFRAME.registerComponent('portal', {
 
         let left = new THREE.Mesh(
             // new THREE.BoxGeometry(0.1/width,2/height,0.1/depth,2,5,2),
-            new THREE.BoxGeometry(0.1/width,1,0.1/depth,2,5,2),
+            new THREE.BoxGeometry(0.1/width,1,0.099/depth,2,5,2),
             [doorMaterial,doorMaterial,doormaterialY, doormaterialY,doorMaterial,doorMaterial], 
         );
 
@@ -600,7 +609,7 @@ AFRAME.registerComponent('portal', {
         this.el.object3D.add(left)
 
         let right = new THREE.Mesh(
-            new THREE.BoxGeometry(0.1/width,1,0.1/depth,2,5,2),
+            new THREE.BoxGeometry(0.1/width,1,0.099/depth,2,5,2),
             [doorMaterial,doorMaterial,doormaterialY, doormaterialY,doorMaterial,doorMaterial], 
         );
 
