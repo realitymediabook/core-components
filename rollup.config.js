@@ -3,6 +3,8 @@ import { terser } from "rollup-plugin-terser";
 import replace from '@rollup/plugin-replace'
 import typescript from '@rollup/plugin-typescript'
 import rollupUrl from '@rollup/plugin-url';
+import commonjs from '@rollup/plugin-commonjs';
+
 
 var componentPath
 var serverPath
@@ -27,14 +29,14 @@ export default ['index', 'main-room'].map((name, index) => ({
         format: 'es',
         plugins: [terser()]
     }],
-    external: [ 
-        componentPath + "dist/hubs.js" ],
+    external: [ componentPath + "dist/hubs.js" ],
     plugins: [
+        commonjs(),
         nodeResolve(),
         replace({
             preventAssignment: true,
             'https://resources.realitymedia.digital/vue-apps/': componentPath //JSON.stringify( componentPath )
-        }),  
+        }), 
         typescript({
             typescript: require('typescript'),
         }),

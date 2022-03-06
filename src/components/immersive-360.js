@@ -36,11 +36,41 @@ loader.load(ballfx, (ball) => {
     ballTex = ball
 })
 
+// simple hack to get position of pano media aligned with camera.
+// Systems are updated after components, so we do the final alignment
+// with the camera after all the components are updated.
+AFRAME.registerSystem('immersive-360', {
+  init: function () {
+    this.updateThis = null;
+  },
+  updatePosition(component) {
+    // TODO:  add this to a queue, and process the queue in tick()
+    this.updateThis = component;
+  },
+
+  tick: function () {
+    // TODO: process the queue, popping everything off the queue when we are done
+    if (this.updateThis) {
+      ///let cam = document.getElementById("viewing-camera").object3DMap.camera;
+      this.updateThis.el.sceneEl.camera.updateMatrices();
+      this.updateThis.el.sceneEl.camera.getWorldPosition(worldCamera)
+      this.updateThis.el.object3D.worldToLocal(worldCamera)
+      this.updateThis.mesh.position.copy(worldCamera)
+      this.updateThis.mesh.matrixNeedsUpdate = true;
+      this.updateThis.mesh.updateWorldMatrix(true, false)
+    }
+  },
+
+})
 AFRAME.registerComponent('immersive-360', {
   schema: {
     url: { type: 'string', default: null },
+    radius: { type: 'number', default: 0.15 },
   },
+
   init: async function () {
+    this.system = window.APP.scene.systems['immersive-360']
+
     var url = this.data.url
     if (!url || url == "") {
         url = this.parseSpokeName()
@@ -48,8 +78,10 @@ AFRAME.registerComponent('immersive-360', {
     
     const extension = url.match(/^.*\.(.*)$/)[1]
 
+    // set up the local content and hook it to the scene
+    this.pano = document.createElement('a-entity')
     // media-image will set up the sphere geometry for us
-    this.el.setAttribute('media-image', {
+    this.pano.setAttribute('media-image', {
       projection: '360-equirectangular',
       alphaMode: 'opaque',
       src: url,
@@ -58,11 +90,16 @@ AFRAME.registerComponent('immersive-360', {
       contentType: `image/${extension}`,
       alphaCutoff: 0,
     })
+   // this.pano.object3D.position.y = 1.6
+    this.el.appendChild(this.pano)
+
     // but we need to wait for this to happen
     this.mesh = await this.getMesh()
+    this.mesh.matrixAutoUpdate = true
+    this.mesh.updateWorldMatrix(true, false)
 
     var ball = new THREE.Mesh(
-        new THREE.SphereBufferGeometry(0.15, 30, 20),
+        new THREE.SphereBufferGeometry(this.data.radius, 30, 20),
         new THREE.ShaderMaterial({
             uniforms: {
               panotex: {value: this.mesh.material.map},
@@ -76,23 +113,24 @@ AFRAME.registerComponent('immersive-360', {
           })
     )
    
-    ball.rotation.set(Math.PI, 0, 0);
-    ball.position.copy(this.mesh.position);
-    ball.userData.floatY = this.mesh.position.y + 0.6;
+    // get the pano oriented properly in the room relative to the way media-image is oriented
+    ball.rotation.set(Math.PI, Math.PI, 0);
+
+    ball.userData.floatY = (this.data.radius > 1.5 ? this.data.radius + 0.1 : 1.6);
     ball.userData.selected = 0;
     ball.userData.timeOffset = (Math.random()+0.5) * 10
     this.ball = ball
     this.el.setObject3D("ball", ball)
 
-    this.mesh.geometry.scale(100, 100, 100)
+    //this.mesh.geometry.scale(2, 2, 2)
     this.mesh.material.setValues({
       transparent: true,
       depthTest: false,
     })
     this.mesh.visible = false
 
-    this.near = 0.8
-    this.far = 1.1
+    this.near = this.data.radius - 0;
+    this.far = this.data.radius + 0.05;
 
     // Render OVER the scene but UNDER the cursor
     this.mesh.renderOrder = APP.RENDER_ORDER.CURSOR - 0.1
@@ -107,13 +145,14 @@ AFRAME.registerComponent('immersive-360', {
   },
   tick: function (time) {
     if (this.mesh && ballTex) {
-      this.ball.position.y = this.ball.userData.floatY + Math.cos((time + this.ball.userData.timeOffset)/1000 * 3 ) * 0.02;
+      let offset = Math.cos((time + this.ball.userData.timeOffset)/1000 * 3 ) * 0.02;
+      this.ball.position.y = this.ball.userData.floatY + offset
       this.ball.matrixNeedsUpdate = true;
 
       this.ball.material.uniforms.texfx.value = ballTex
       this.ball.material.uniforms.ballTime.value = time * 0.001 + this.ball.userData.timeOffset
       // Linearly map camera distance to material opacity
-      this.mesh.getWorldPosition(worldSelf)
+      this.ball.getWorldPosition(worldSelf)
       this.el.sceneEl.camera.getWorldPosition(worldCamera)
       const distance = worldSelf.distanceTo(worldCamera)
       const opacity = 1 - (distance - this.near) / (this.far - this.near)
@@ -126,6 +165,17 @@ AFRAME.registerComponent('immersive-360', {
             this.mesh.material.opacity = opacity > 1 ? 1 : opacity
             this.mesh.visible = true
             this.ball.material.opacity = this.mesh.material.opacity
+            
+            // position the mesh around user until they leave the ball
+            // this.el.object3D.worldToLocal(worldCamera)
+            // this.mesh.position.copy(worldCamera)
+            
+            // this.el.object3D.getWorldPosition(worldSelf)
+            // worldSelf.y += this.ball.userData.floatY;
+
+            // worldSelf.sub(worldCamera)
+            // this.mesh.position.copy(worldSelf)
+            this.system.updatePosition(this);
         }
     }
   },
@@ -140,13 +190,13 @@ AFRAME.registerComponent('immersive-360', {
   },
   getMesh: async function () {
     return new Promise((resolve) => {
-      const mesh = this.el.object3DMap.mesh
+      const mesh = this.pano.object3DMap.mesh
       if (mesh) resolve(mesh)
-      this.el.addEventListener(
+      this.pano.addEventListener(
         'image-loaded',
         () => {
             console.log("immersive-360 pano loaded: " + this.data.url)
-          resolve(this.el.object3DMap.mesh)
+          resolve(this.pano.object3DMap.mesh)
         },
         { once: true }
       )

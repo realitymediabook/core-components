@@ -1,6 +1,5 @@
 {
     "comment": "https://github.com/aelatgt/Spoke/tree/feature/component-system/src/editor/nodes for nodes",
-
   "types": {
   },
   "components": {
@@ -149,6 +148,10 @@
             "url" : {
                 "type": "string",
                 "default": ""
+            },
+            "radius": {
+                "type": "float",
+                "default": 1
             }
         }
     },
@@ -164,6 +167,85 @@
                 "type": "float",
                 "default": 1
             }
+        }
+    },
+    "force-graph": {
+        "category": "AEL",
+        "nodes": ["Group"],
+        "properties": {
+            "name": { 
+                "type": "string",
+                "default": "" 
+            },
+            "size": { 
+                "type": "float",
+                "default": 1.0
+            },
+            "isNetworked": { 
+                "type": "bool",
+                "default": false
+            },
+            "isInteractive": { 
+                "type": "bool",
+                "default": false
+            },
+            "isDraggable": { 
+                "type": "bool",
+                "default": false
+            },
+            "jsonUrl": { "type": "string", "default": "" },
+            "numDimensions": { "type": "int", "default": 3 },
+            "dagMode": { "type": "string", "default": "" },
+            "dagLevelDistance": { "type": "int", "default": 0 },
+            "dagNodeFilter": { "type": "string", "default": "function() { return true; }"},
+            "onDagError": { "type": "string", "default": "function() {}" },
+            "nodeRelSize": { "type": "int", "default": 4 },
+            "nodeId": { "type": "string", "default": "id" },
+            "nodeVal": { "type": "string", "default": "val" },
+            "nodeResolution": { "type": "int", "default": 8 }, 
+            "nodeVisibility": { "type": "string", "default": "true" },
+            "nodeColor": { "type": "string", "default": "color" },
+            "nodeAutoColorBy": { "type": "string", "default": "" },
+            "nodeOpacity": { "type": "float", "default": 0.75 },
+            "nodeThreeObject": { "type": "string", "default": "null" },
+            "nodeThreeObjectExtend": { "type": "string", "default": "false" },
+            "linkSource": { "type": "string", "default": "source" },
+            "linkTarget": { "type": "string", "default": "target" },
+            "linkVisibility": { "type": "string", "default": "true" },
+            "linkColor": { "type": "string", "default": "color" },
+            "linkAutoColorBy": { "type": "string", "default": "" },
+            "linkOpacity": { "type": "float", "default": 0.2 },
+            "linkWidth": { "type": "string", "default": "0" },
+            "linkResolution": { "type": "int", "default": 6 }, 
+            "linkCurvature": { "type": "string", "default": "0" },
+            "linkCurveRotation": { "type": "string", "default": "0" },
+            "linkMaterial": { "type": "string", "default": "null" },
+            "linkThreeObject": { "type": "string", "default": "null" },
+            "linkThreeObjectExtend": { "type": "string", "default": "false" },
+            "linkPositionUpdate": { "type": "string", "default": "null" },
+            "linkDirectionalArrowLength": { "type": "string", "default": "0" },
+            "linkDirectionalArrowColor": { "type": "string", "default": "null" },
+            "linkDirectionalArrowRelPos": { "type": "string", "default": "0.5" }, 
+            "linkDirectionalArrowResolution": { "type": "int", "default": 8 },
+            "linkDirectionalParticles": { "type": "string", "default": "0" }, 
+            "linkDirectionalParticleSpeed": { "type": "string", "default": "0.01" }, 
+            "linkDirectionalParticleWidth": { "type": "string", "default": "0.5" },
+            "linkDirectionalParticleColor": { "type": "string", "default": "null" },
+            "linkDirectionalParticleResolution": { "type": "int", "default": 4 }, 
+            "onNodeHover": { "type": "string", "default": "() => {}" },
+            "onLinkHover": { "type": "string", "default": "() => {}" },
+            "onNodeClick": { "type": "string", "default": "() => {}" },
+            "onLinkClick": { "type": "string", "default": "() => {}" },
+            "forceEngine": { "type": "string", "default": "d3" },
+            "d3AlphaMin": { "type": "float", "default": 0 },
+            "d3AlphaDecay": { "type": "float", "default": 0.0228 },
+            "d3VelocityDecay": { "type": "float", "default": 0.4 },
+            "ngraphPhysics": { "type": "string", "default": "null" },
+            "warmupTicks": { "type": "int", "default": 0 }, 
+            "cooldownTicks": { "type": "int", "default": 100000000000000 },
+            "cooldownTime": { "type": "int", "default": 15000 }, 
+            "onEngineTick": { "type": "string", "default": "function() {}" },
+            "onEngineStop": { "type": "string", "default": "function() {}" }
         }
     }
   }
