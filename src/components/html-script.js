@@ -196,11 +196,15 @@ AFRAME.registerComponent('html-script', {
                     parent2.matrixNeedsUpdate = true;
                 }
 
+                this.actualWidth = width
+                this.actualHeight = height
+
                 if (width > 0 && height > 0) {
                     const {width: wsize, height: hsize} = this.script.getSize()
-                    var scale = Math.min(width / wsize, height / hsize)
-                    this.simpleContainer.setAttribute("scale", { x: scale, y: scale, z: scale});
-
+                    if (wsize > 0 && hsize > 0) {
+                        var scale = Math.min(width / wsize, height / hsize)
+                        this.simpleContainer.setAttribute("scale", { x: scale, y: scale, z: scale});
+                    }
                     const spinnerScale = Math.min(width,height) * 0.25
                     this.spinnerPlane.scale.set(spinnerScale, spinnerScale, 1)
                 }
@@ -437,68 +441,69 @@ AFRAME.registerComponent('html-script', {
 
         if (this.loading) {
             this.spinnerPlane.rotation.z += 0.03
+        } else {
+            if (this.script.isInteractive) {
+                // more or less copied from "hoverable-visuals.js" in hubs
+                const toggling = this.el.sceneEl.systems["hubs-systems"].cursorTogglingSystem;
+                var passthruInteractor = []
+
+                let interactorOne, interactorTwo;
+                const interaction = this.el.sceneEl.systems.interaction;
+                if (!interaction.ready) return; //DOMContentReady workaround
+                
+                let hoverEl = this.simpleContainer
+                if (interaction.state.leftHand.hovered === hoverEl && !interaction.state.leftHand.held) {
+                interactorOne = interaction.options.leftHand.entity.object3D;
+                }
+                if (
+                interaction.state.leftRemote.hovered === hoverEl &&
+                !interaction.state.leftRemote.held &&
+                !toggling.leftToggledOff
+                ) {
+                interactorOne = interaction.options.leftRemote.entity.object3D;
+                }
+                if (interactorOne) {
+                    let pos = interactorOne.position
+                    let dir = this.script.webLayer3D.getWorldDirection(new THREE.Vector3()).negate()
+                    pos.addScaledVector(dir, -0.1)
+                    this.hoverRayL.set(pos, dir)
+
+                    passthruInteractor.push(this.hoverRayL)
+                }
+                if (
+                interaction.state.rightRemote.hovered === hoverEl &&
+                !interaction.state.rightRemote.held &&
+                !toggling.rightToggledOff
+                ) {
+                interactorTwo = interaction.options.rightRemote.entity.object3D;
+                }
+                if (interaction.state.rightHand.hovered === hoverEl && !interaction.state.rightHand.held) {
+                    interactorTwo = interaction.options.rightHand.entity.object3D;
+                }
+                if (interactorTwo) {
+                    let pos = interactorTwo.position
+                    let dir = this.script.webLayer3D.getWorldDirection(new THREE.Vector3()).negate()
+                    pos.addScaledVector(dir, -0.1)
+                    this.hoverRayR.set(pos, dir)
+                    passthruInteractor.push(this.hoverRayR)
+                }
+
+                this.script.webLayer3D.interactionRays = passthruInteractor
+            }
+
+            if (this.script.isNetworked) {
+                // if we haven't finished setting up the networked entity don't do anything.
+                if (!this.netEntity || !this.stateSync) { return }
+
+                // if the state has changed in the networked data, update our html object
+                if (this.stateSync.changed) {
+                    this.stateSync.changed = false
+                    this.script.updateSharedData(this.stateSync.dataObject)
+                }
+            }
+
+            this.script.tick(time)
         }
-        if (this.script.isInteractive) {
-            // more or less copied from "hoverable-visuals.js" in hubs
-            const toggling = this.el.sceneEl.systems["hubs-systems"].cursorTogglingSystem;
-            var passthruInteractor = []
-
-            let interactorOne, interactorTwo;
-            const interaction = this.el.sceneEl.systems.interaction;
-            if (!interaction.ready) return; //DOMContentReady workaround
-            
-            let hoverEl = this.simpleContainer
-            if (interaction.state.leftHand.hovered === hoverEl && !interaction.state.leftHand.held) {
-              interactorOne = interaction.options.leftHand.entity.object3D;
-            }
-            if (
-              interaction.state.leftRemote.hovered === hoverEl &&
-              !interaction.state.leftRemote.held &&
-              !toggling.leftToggledOff
-            ) {
-              interactorOne = interaction.options.leftRemote.entity.object3D;
-            }
-            if (interactorOne) {
-                let pos = interactorOne.position
-                let dir = this.script.webLayer3D.getWorldDirection(new THREE.Vector3()).negate()
-                pos.addScaledVector(dir, -0.1)
-                this.hoverRayL.set(pos, dir)
-
-                passthruInteractor.push(this.hoverRayL)
-            }
-            if (
-              interaction.state.rightRemote.hovered === hoverEl &&
-              !interaction.state.rightRemote.held &&
-              !toggling.rightToggledOff
-            ) {
-              interactorTwo = interaction.options.rightRemote.entity.object3D;
-            }
-            if (interaction.state.rightHand.hovered === hoverEl && !interaction.state.rightHand.held) {
-                interactorTwo = interaction.options.rightHand.entity.object3D;
-            }
-            if (interactorTwo) {
-                let pos = interactorTwo.position
-                let dir = this.script.webLayer3D.getWorldDirection(new THREE.Vector3()).negate()
-                pos.addScaledVector(dir, -0.1)
-                this.hoverRayR.set(pos, dir)
-                passthruInteractor.push(this.hoverRayR)
-            }
-
-            this.script.webLayer3D.interactionRays = passthruInteractor
-        }
-
-        if (this.script.isNetworked) {
-            // if we haven't finished setting up the networked entity don't do anything.
-            if (!this.netEntity || !this.stateSync) { return }
-
-            // if the state has changed in the networked data, update our html object
-            if (this.stateSync.changed) {
-                this.stateSync.changed = false
-                this.script.updateSharedData(this.stateSync.dataObject)
-            }
-        }
-
-        this.script.tick(time)
     },
   
     // TODO:  should only be called if there is no parameter specifying the
@@ -557,14 +562,20 @@ AFRAME.registerComponent('html-script', {
             // this.script.webLayer3D.refresh(true)
             // this.script.webLayer3D.update(true)
 
-            this.script.readyPromise?.then(() => {
+            this.script.waitForReady().then(() => {
+                const {width: wsize, height: hsize} = this.script.getSize()
+                if (wsize > 0 && hsize > 0) {
+                    var scale = Math.min(this.actualWidth / wsize, this.actualHeight / hsize)
+                    this.simpleContainer.setAttribute("scale", { x: scale, y: scale, z: scale});
+                }
+
                 // when a script finishes getting ready, tell the 
                 // portals to update themselves
-                this.el.sceneEl.emit('updatePortals') 
+                this.el.sceneEl.emit('updatePortals'); 
                 this.loading = false;
-                this.el.removeObject3D("spinner")
+                this.el.removeObject3D("spinner");
             })
-        } else {
+		} else {
             console.warn("'html-script' component failed to initialize script for " + this.componentName);
         }
     },
