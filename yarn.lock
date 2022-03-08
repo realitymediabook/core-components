@@ -608,7 +608,7 @@
   "resolved" "https://registry.npmjs.org/d3-dispatch/-/d3-dispatch-3.0.1.tgz"
   "version" "3.0.1"
 
-"d3-force-3d@2 - 3":
+"d3-force-3d@^3.0.3", "d3-force-3d@2 - 3":
   "integrity" "sha512-8HGTbw6y35UYManGCPU4+b9/PGgnyjzRq80DRsp7zFsRl0leVz2pzwx18dwkPe4rDxTOEpM4BuWQ2krbVaGQQA=="
   "resolved" "https://registry.npmjs.org/d3-force-3d/-/d3-force-3d-3.0.3.tgz"
   "version" "3.0.3"
@@ -2178,7 +2178,12 @@
     "ngraph.graph" "^20.0"
     "tinycolor2" "^1.4"
 
-"three@*", "three@>=0.118.3", "three@github:mozillareality/three.js#hubs-patches-133":
+"three-spritetext@^1.6.5":
+  "integrity" "sha512-ttA1ce3tJz6OFojLGY3VjtqF9johetq50TztYcPFWqdEUrwPmej5XXcHahVyQGd88FHRDzJmW2rW3zSifUsdYA=="
+  "resolved" "https://registry.npmjs.org/three-spritetext/-/three-spritetext-1.6.5.tgz"
+  "version" "1.6.5"
+
+"three@*", "three@>=0.118.3", "three@>=0.86.0", "three@github:mozillareality/three.js#hubs-patches-133":
   "resolved" "git+ssh://git@github.com/mozillareality/three.js.git#17375caff569ad48e1bef3e673e33f0bdd5d9bab"
   "version" "0.133.1"
 
