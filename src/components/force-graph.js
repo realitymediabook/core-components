@@ -427,7 +427,7 @@ let child = {
             }); // Convert blank values into nulls
     
         this.forceGraph.nodeThreeObject(node => {
-            const sprite = new SpriteText(node.id);
+            const sprite = new SpriteText(node.name);
             sprite.material.depthWrite = false; // make sprite background transparent
             sprite.color = node.color;
             sprite.textHeight = 8;
