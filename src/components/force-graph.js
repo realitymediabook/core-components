@@ -2,9 +2,26 @@
  * Description
  * ===========
  * create a forcegraph component (using https://github.com/vasturiano/three-forcegraph)
- * that can be interacted with and has some networked attributes.
+ * that can be interacted with and has some networked attributes.  
+ * 
+ * A lot of this code is taken from the aframe-forcegraph-component in the same github user.
  *
- */
+ * To use in Spoke:
+* -  width and height are the in-world max width and height around the center (width is x and z)
+* - ignore the 3 "is" flags, no interactivity yet
+* - ignore vueApp.  I using their "SpriteText", but it has some issues so I'm going to try switching to vueApps.  The GraphLabel vueApp is the default
+* - jsonUrl:  the filename in the data repository, /forcegraph directory 
+* - chargeForce is that force you used to spread the nodes, jay
+* - x,y,z Force are the "push" toward 0 in that direction.  Here, I'm pushing slighty toward y to flatten the graph so it's not so tall
+* - nodeId and node val are just their defaults, prob won't change, but I left them
+* - nodeColor would be the field for the color of the node in the json, but we aren't using it because ...
+* - ... we have nodeAutoColorBy set (to group, here).  If this is unset, it uses the color above
+* - nodeOpacity is what it says
+* - linkSource and linkTarget are the fields in the json for source and target. Again, just left them, probably won't change
+* - linkColor and AutoColorBy and linkOpacity are same as node.	
+* - linkWidth is 0, so it uses three "Lines".  Any integer above turns them into tubes, which look like garbage with these SpriteText nodes.
+*   
+*/
 import {
     interactiveComponentTemplate,
     registerSharedAFRAMEComponents,
@@ -17,45 +34,39 @@ import {
     forceX as d3ForceX,
     forceY as d3ForceY,
     forceZ as d3ForceZ
-  } from 'd3-force-3d';
-  
+} from 'd3-force-3d';
+
+import {vueComponents as htmlComponents} from "https://resources.realitymedia.digital/vue-apps/dist/hubs.js";
+
 ///////////////////////////////////////////////////////////////////////////////
 // simple convenience functions 
 const parseJson = function (prop) {
     return (typeof prop === 'string')
-      ? JSON.parse(prop)
-      : prop; // already parsed
+        ? JSON.parse(prop)
+        : prop; // already parsed
 };
 
 const parseFn = function (prop) {
-if (typeof prop === 'function') return prop; // already a function
-const geval = eval; // Avoid using eval directly https://github.com/rollup/rollup/wiki/Troubleshooting#avoiding-eval
-try {
-    const evalled = geval('(' + prop + ')');
-    return evalled;
-} catch (e) {} // Can't eval, not a function
-return null;
+    if (typeof prop === 'function') return prop; // already a function
+    const geval = eval; // Avoid using eval directly https://github.com/rollup/rollup/wiki/Troubleshooting#avoiding-eval
+    try {
+        const evalled = geval('(' + prop + ')');
+        return evalled;
+    } catch (e) { } // Can't eval, not a function
+    return null;
 };
 
 const parseAccessor = function (prop) {
-if (!isNaN(parseFloat(prop))) { return parseFloat(prop); } // parse numbers
-if (parseFn(prop)) { return parseFn(prop); } // parse functions
-return prop; // strings
+    if (!isNaN(parseFloat(prop))) { return parseFloat(prop); } // parse numbers
+    if (parseFn(prop)) { return parseFn(prop); } // parse functions
+    return prop; // strings
 };
 
-  
+
 function almostEqualVec3(u, v, epsilon) {
     return Math.abs(u.x - v.x) < epsilon && Math.abs(u.y - v.y) < epsilon && Math.abs(u.z - v.z) < epsilon;
 };
 
-// function generateTextNode(node) {
-//     const sprite = new SpriteText(node.id);
-//     sprite.material.depthWrite = false; 
-//     sprite.color = node.color;
-//     sprite.textHeight = 8;
-//     return sprite;
-// }
-  
 // a lot of the complexity has been pulled out into methods in the object
 // created by interactiveComponentTemplate() and registerSharedAFRAMEcomponents().
 // Here, we define methods that are used by the object there, to do our object-specific
@@ -139,11 +150,15 @@ let child = {
             default: 1
         },
 
-        vueApp : {
+        vueApp: {
             type: "string",
             default: "GraphLabel"
         },
 
+        textSize: {
+            type: "number",
+            default: "2"
+        },
         // from the original forcegraph-component
         jsonUrl: { type: 'string', default: '' },
 
@@ -151,128 +166,76 @@ let child = {
         xForce: { type: 'number', default: 0 },
         yForce: { type: 'number', default: 0 },
         zForce: { type: 'number', default: 0 },
-        // nodes: { parse: parseJson, default: [] },
-        // links: { parse: parseJson, default: [] },
-        // numDimensions: { type: 'number', default: 3 },
-        // dagMode: { type: 'string', default: '' },
-        // dagLevelDistance: { type: 'number', default: 0 },
-        // dagNodeFilter: { parse: parseFn, function() { return true; }},
-        // onDagError: { parse: parseFn, default: undefined },
-        // nodeRelSize: { type: 'number', default: 4 }, // volume per val unit
         nodeId: { type: 'string', default: 'id' },
         nodeVal: { parse: parseAccessor, default: 'val' },
-        // nodeResolution: { type: 'number', default: 8 }, // how many slice segments in the sphere's circumference
-        // nodeVisibility: { parse: parseAccessor, default: true },
         nodeColor: { parse: parseAccessor, default: 'color' },
         nodeAutoColorBy: { parse: parseAccessor, default: '' }, // color nodes with the same field equally
         nodeOpacity: { type: 'number', default: 0.75 },
+        // leave these commented:  we might add a list of methods that could
+        // be used to create the nodes.  But nothing right now.
         // nodeThreeObject: { parse: parseAccessor, default: null },
-        // nodeThreeObjectExtend: { parse: parseAccessor, default: false },
         linkSource: { type: 'string', default: 'source' },
         linkTarget: { type: 'string', default: 'target' },
         linkVisibility: { type: 'boolean', default: true },
         linkColor: { parse: parseAccessor, default: 'color' },
         linkAutoColorBy: { parse: parseAccessor, default: '' }, // color links with the same field equally
         linkOpacity: { type: 'number', default: 0.2 },
-        linkWidth: { parse: parseAccessor, default: 0 },
-        // linkResolution: { type: 'number', default: 6 }, // how many radial segments in each line cylinder's geometry
-        // linkCurvature: { parse: parseAccessor, default: 0 },
-        // linkCurveRotation: { parse: parseAccessor, default: 0 },
-        // linkMaterial: { parse: parseAccessor, default: null },
-        // linkThreeObject: { parse: parseAccessor, default: null },
-        // linkThreeObjectExtend: { parse: parseAccessor, default: false },
-        // linkPositionUpdate: { parse: parseFn, default: null },
-        // linkDirectionalArrowLength: { parse: parseAccessor, default: 0 },
-        // linkDirectionalArrowColor: { parse: parseAccessor, default: null },
-        // linkDirectionalArrowRelPos: { parse: parseAccessor, default: 0.5 }, // value between 0<>1 indicating the relative pos along the (exposed) line
-        // linkDirectionalArrowResolution: { type: 'number', default: 8 }, // how many slice segments in the arrow's conic circumference
-        // linkDirectionalParticles: { parse: parseAccessor, default: 0 }, // animate photons travelling in the link direction
-        // linkDirectionalParticleSpeed: { parse: parseAccessor, default: 0.01 }, // in link length ratio per frame
-        // linkDirectionalParticleWidth: { parse: parseAccessor, default: 0.5 },
-        // linkDirectionalParticleColor: { parse: parseAccessor, default: null },
-        // linkDirectionalParticleResolution: { type: 'number', default: 4 }, // how many slice segments in the particle sphere's circumference
-        // onNodeHover: { parse: parseFn, default: () => {} },
-        // onLinkHover: { parse: parseFn, default: () => {} },
-        // onNodeClick: { parse: parseFn, default: () => {} },
-        // onLinkClick: { parse: parseFn, default: () => {} },
-        // forceEngine: { type: 'string', default: 'd3' }, // 'd3' or 'ngraph'
-        // d3AlphaMin: { type: 'number', default: 0.01 },
-        // d3AlphaDecay: { type: 'number', default: 0.0228 },
-        // d3VelocityDecay: { type: 'number', default: 0.4 },
-        // ngraphPhysics: { parse: parseJson, default: null },
-        // warmupTicks: { type: 'int', default: 0 }, // how many times to tick the force engine at init before starting to render
-        // cooldownTicks: { type: 'int', default: 1e18 }, // Simulate infinity (int parser doesn't accept Infinity object)
-        // cooldownTime: { type: 'int', default: 15000 }, // ms
-        // onEngineTick: { parse: parseFn, default: function () {} },
-        // onEngineStop: { parse: parseFn, default: function () {} }
+        linkWidth: { parse: parseAccessor, default: 0 }
     },
-  
-  // Bind component methods
-  getGraphBbox: function() {
-    if (!this.forceGraph) {
-      // Got here before component init -> initialize forceGraph
-      this.forceGraph = new ThreeForceGraph();
-    }
 
-    return this.forceGraph.getGraphBbox();
-  },
-  emitParticle: function () {
-    if (!this.forceGraph) {
-      // Got here before component init -> initialize forceGraph
-      this.forceGraph = new ThreeForceGraph();
-    }
+    // Bind component methods
+    getGraphBbox: function () {
+        if (!this.forceGraph) {
+            // Got here before component init -> initialize forceGraph
+            this.forceGraph = new ThreeForceGraph();
+        }
 
-    const forceGraph = this.forceGraph;
-    const returnVal = forceGraph.emitParticle.apply(forceGraph, arguments);
+        return this.forceGraph.getGraphBbox();
+    },
 
-    return returnVal === forceGraph
-      ? this // return self, not the inner forcegraph component
-      : returnVal;
-  },
+    d3Force: function () {
+        if (!this.forceGraph) {
+            // Got here before component init -> initialize forceGraph
+            this.forceGraph = new ThreeForceGraph();
+        }
 
-  d3Force: function () {
-    if (!this.forceGraph) {
-      // Got here before component init -> initialize forceGraph
-      this.forceGraph = new ThreeForceGraph();
-    }
+        const forceGraph = this.forceGraph;
+        const returnVal = forceGraph.d3Force.apply(forceGraph, arguments);
 
-    const forceGraph = this.forceGraph;
-    const returnVal = forceGraph.d3Force.apply(forceGraph, arguments);
+        return returnVal === forceGraph
+            ? this // return self, not the inner forcegraph component
+            : returnVal;
+    },
 
-    return returnVal === forceGraph
-      ? this // return self, not the inner forcegraph component
-      : returnVal;
-  },
+    d3ReheatSimulation: function () {
+        this.forceGraph && this.forceGraph.d3ReheatSimulation();
+        return this;
+    },
 
-  d3ReheatSimulation: function () {
-    this.forceGraph && this.forceGraph.d3ReheatSimulation();
-    return this;
-  },
+    refresh: function () {
+        this.forceGraph && this.forceGraph.refresh();
+        return this;
+    },
 
-  refresh: function () {
-    this.forceGraph && this.forceGraph.refresh();
-    return this;
-  },
+    scaleToFit: function () {
+        let bbox = this.forceGraph.getGraphBbox();
+        if (bbox) {
+            let sizeH = bbox.y[1] - bbox.y[0];
+            let sizeW = bbox.x[1] - bbox.x[0];
+            sizeW = Math.max(sizeW, bbox.z[1] - bbox.z[0]);
 
-  scaleToFit: function () {
-    let bbox = this.forceGraph.getGraphBbox();
-    if (bbox) {
-        let sizeH = bbox.y[1] - bbox.y[0];
-        let sizeW = bbox.x[1] - bbox.x[0];
-        sizeW = Math.max(sizeW, bbox.z[1] - bbox.z[0]);
+            sizeH = this.data.height / sizeH;
+            sizeW = this.data.width / sizeW;
 
-        sizeH = this.data.height / sizeH;
-        sizeW = this.data.width / sizeW;
+            // want both to fix their respective sizes, so we want
+            // the scale to be the smaller of the two
+            let scale = Math.min(sizeH, sizeW);
 
-        // want both to fix their respective sizes, so we want
-        // the scale to be the smaller of the two
-        let scale = Math.min(sizeH, sizeW);
-        
-        scale *= this.forceGraph.scale.x
-        this.forceGraph.scale.set(scale, scale, scale);
-        this.forceGraph.updateMatrix();
-    }
-  },
+            scale *= this.forceGraph.scale.x
+            this.forceGraph.scale.set(scale, scale, scale);
+            this.forceGraph.updateMatrix();
+        }
+    },
 
 
     // fullName is used to generate names for the AFRame objects we create.  Should be
@@ -283,17 +246,20 @@ let child = {
         this.startInit();
 
         const state = this.state = {}; // Internal state
-
         this.running = false;
 
+        this.makeSpriteText = this.makeSpriteText.bind(this);
+        this.makeHTMLText = this.makeHTMLText.bind(this);
+
         // setup FG object
-        if (!this.forceGraph) this.forceGraph = new ThreeForceGraph(); // initialize forceGraph if it doesn't exist yet
+        if (!this.forceGraph) this.forceGraph = new ThreeForceGraph(); 
+
         this.forceGraph
             .onFinishUpdate(() => {
                 if (!this.simpleContainer.getObject3D("forcegraphGroup")) {
-                   this.simpleContainer.setObject3D('forcegraphGroup', this.forceGraph)
+                    this.simpleContainer.setObject3D('forcegraphGroup', this.forceGraph)
                 }
-                
+
                 this.running = true;
                 this.forceGraph.onEngineStop(() => {
                     this.running = false;
@@ -307,39 +273,24 @@ let child = {
                     // it rescales when they let go
                     //this.running = true;
                 })
-            
+
                 //this.forceGraph.d3Force('charge').strength(-200);
                 // while (running) {
                 //     this.forceGraph.tickFrame();
                 // }
-            }) 
-            //.onLoading(() => state.infoEl.setAttribute('value', 'Loading...')) // Add loading msg
-            //.onFinishLoading(() => {
-            // })
+            })
 
+        // want to use these forces
         this.forceGraph.d3Force('x', d3ForceX());
         this.forceGraph.d3Force('y', d3ForceY());
         this.forceGraph.d3Force('z', d3ForceZ());
 
-        // the template uses these to set things up.  relativeSize
-        // is used to set the size of the object relative to the size of the image
-        // that it's attached to: a size of 1 means 
-        //   "the size of 1x1x1 units in the object
-        //    space will be the same as the size of the image".  
-        // Larger relative sizes will make the object smaller because we are
-        // saying that a size of NxNxN maps to the Size of the image, and vice versa.  
-        // For example, if the object below is 2,2 in size and we set size 2, then
-        // the object will remain the same size as the image. If we leave it at 1,1,
-        // then the object will be twice the size of the image. 
-        // this.relativeSize = this.data.size;
-        // this.forceGraph.scale.set(this.relativeSize, this.relativeSize, this.relativeSize);
-        // this.forceGraph.updateMatrix();
-
         // override the defaults in the template
         this.isInteractive = this.data.isInteractive;
         this.isNetworked = this.data.isNetworked;
+        this.isDraggable = this.data.isDraggable;
 
-        // our potentiall-shared object state (two roations and two colors for the boxes) 
+        // our potentiall-shared object state 
         this.sharedData = {
         };
 
@@ -356,6 +307,59 @@ let child = {
         this.finishInit();
     },
 
+    makeSpriteText: function (node) {
+        const sprite = new SpriteText(node.name);
+        sprite.material.depthWrite = false; // make sprite background transparent
+        sprite.color = node.color;
+        sprite.textHeight = 8;
+        return sprite;
+    },
+
+    htmlGenerator: null,
+
+    // do some stuff to get async data.  Called by initTemplate()
+    loadData: async function () {
+    },
+    
+    makeHTMLText: function (node) {    
+        let ret = new THREE.Object3D();
+
+        let scale = 150
+
+        node._box = new THREE.Mesh(
+            new THREE.BoxGeometry(1/scale, 1/scale, 1/scale, 2, 2, 2),
+            new THREE.MeshBasicMaterial({
+                color: node.color,
+                opacity: this.data.nodeOpacity
+            })
+        );
+        node._box.matrixAutoUpdate = true;
+        ret.add(node._box)
+
+        var titleScriptData = {
+            text: node.name,
+            color: node.color,
+            size: this.data.textSize
+        }
+
+        node.htmlGenerator = htmlComponents["GraphLabel"](titleScriptData)
+        //ret.add(this.htmlGenerator.webLayer3D);
+        node.htmlGenerator.webLayer3D.matrixAutoUpdate = true
+
+        ret.scale.x = scale
+        ret.scale.y = scale
+        ret.scale.z = scale
+
+        node.htmlGenerator.waitForReady().then(() => {    
+            node.htmlGenerator.webLayer3D.contentMesh.material.opacity = this.data.nodeOpacity        
+            ret.add(node.htmlGenerator.webLayer3D);
+            ret.remove(node._box);
+            node._box = null;
+        })
+        return ret;
+
+},
+
     // if anything changed in this.data, we need to update the object.  
     // this is probably not going to happen, but could if another of 
     // our scripts modifies the component properties in the DOM
@@ -363,76 +367,34 @@ let child = {
         const comp = this;
         const elData = this.data;
         const diff = AFRAME.utils.diff(elData, oldData);
-    
+
         const fgProps = [
-          'jsonUrl',
-        //   'numDimensions',
-        //   'dagMode',
-        //   'dagLevelDistance',
-        //   'dagNodeFilter',
-        //   'onDagError',
-        //   'nodeRelSize',
-          'nodeId',
-          'nodeVal',
-        //   'nodeResolution',
-        //   'nodeVisibility',
-          'nodeColor',
-          'nodeAutoColorBy',
-          'nodeOpacity',
-        //   'nodeThreeObject',
-        //   'nodeThreeObjectExtend',
-          'linkSource',
-          'linkTarget',
-          'linkVisibility',
-          'linkColor',
-          'linkAutoColorBy',
-          'linkOpacity',
-          'linkWidth',
-        //   'linkResolution',
-        //   'linkCurvature',
-        //   'linkCurveRotation',
-        //   'linkMaterial',
-        //   'linkThreeObject',
-        //   'linkThreeObjectExtend',
-        //   'linkPositionUpdate',
-        //   'linkDirectionalArrowLength',
-        //   'linkDirectionalArrowColor',
-        //   'linkDirectionalArrowRelPos',
-        //   'linkDirectionalArrowResolution',
-        //   'linkDirectionalParticles',
-        //   'linkDirectionalParticleSpeed',
-        //   'linkDirectionalParticleWidth',
-        //   'linkDirectionalParticleColor',
-        //   'linkDirectionalParticleResolution',
-        //   'forceEngine',
-        //   'd3AlphaMin',
-        //   'd3AphaDecay',
-        //   'd3VelocityDecay',
-        //   'ngraphPhysics',
-        //   'warmupTicks',
-        //   'cooldownTicks',
-        //   'cooldownTime',
-        //   'onEngineTick',
-        //   'onEngineStop'
+            'jsonUrl',
+            'nodeId',
+            'nodeVal',
+            'nodeColor',
+            'nodeAutoColorBy',
+            'nodeOpacity',
+            'linkSource',
+            'linkTarget',
+            'linkVisibility',
+            'linkColor',
+            'linkAutoColorBy',
+            'linkOpacity',
+            'linkWidth',
         ];
-    
+
         fgProps
-          .filter(function (p) { return p in diff; })
-          .forEach(function (p) { 
+            .filter(function (p) { return p in diff; })
+            .forEach(function (p) {
                 if (p === "jsonUrl") {
                     elData[p] = "https://resources.realitymedia.digital/data/forcegraph/" + elData[p];
-                } 
-              
-                comp.forceGraph[p](elData[p] !== '' ? elData[p] : null); 
+                }
+
+                comp.forceGraph[p](elData[p] !== '' ? elData[p] : null);
             }); // Convert blank values into nulls
-    
-        this.forceGraph.nodeThreeObject(node => {
-            const sprite = new SpriteText(node.name);
-            sprite.material.depthWrite = false; // make sprite background transparent
-            sprite.color = node.color;
-            sprite.textHeight = 8;
-            return sprite;
-        });            
+
+        this.forceGraph.nodeThreeObject(this.makeHTMLText);
 
         if (this.data.chargeForce != 0) {
             this.forceGraph.d3Force('charge').strength(this.data.chargeForce);
@@ -447,19 +409,6 @@ let child = {
         if (this.data.zForce !== 0) {
             this.forceGraph.d3Force('z').strength(this.data.zForce);
         }
-
-        //comp.forceGraph.nodeRelSize(0.01)
-        // if ('nodes' in diff || 'links' in diff) {
-        //   comp.forceGraph.graphData({
-        //     nodes: elData.nodes,
-        //     links: elData.links
-        //   });
-        // }
-    },
-    
-    // do some stuff to get async data.  Called by initTemplate()
-    loadData: async function () {
-        return
     },
 
     // called by initTemplate() when the component is being processed.  Here, we create
@@ -547,10 +496,14 @@ let child = {
     },
 
     // per frame stuff
+    cameraMatrix: new THREE.Matrix4(),
+    cameraQuaternion: new THREE.Quaternion(),
+    nodeQuaternion: new THREE.Quaternion(),
+
     tick: function (time) {
         const state = this.state;
         const props = this.data;
-    
+
         // if it's interactive, we'll handle drag and hover events
         if (this.isInteractive) {
 
@@ -575,22 +528,22 @@ let child = {
                 //     this.setSharedEuler(this.box.rotation)
                 // } else if (this.clickIntersection.object == this.box2) {
 
-                    // we want to hit test on our boxes, but only want to know if/where
-                    // we hit the big box.  So first hide the small box, and then do a
-                    // a hit test, which can only result in a hit on the big box.  
-                    // this.box2.visible = false
-                    // let intersect = this.handleInteraction.getIntersection(this.handleInteraction.dragInteractor, [this.box])
-                    // this.box2.visible = true
+                // we want to hit test on our boxes, but only want to know if/where
+                // we hit the big box.  So first hide the small box, and then do a
+                // a hit test, which can only result in a hit on the big box.  
+                // this.box2.visible = false
+                // let intersect = this.handleInteraction.getIntersection(this.handleInteraction.dragInteractor, [this.box])
+                // this.box2.visible = true
 
-                    // // if we hit the big box, move the small box to the position of the hit
-                    // if (intersect) {
-                    //     // the intersect object is a THREE.Intersection object, which has the hit point
-                    //     // specified in world coordinates.  So we move those coordinates into the local
-                    //     // coordiates of the big box, and then set the position of the small box to that
-                    //     let position = this.box.worldToLocal(intersect.point)
-                    //     this.box2.position.copy(position)
-                    //     this.setSharedPosition(this.box2.position)
-                    // }
+                // // if we hit the big box, move the small box to the position of the hit
+                // if (intersect) {
+                //     // the intersect object is a THREE.Intersection object, which has the hit point
+                //     // specified in world coordinates.  So we move those coordinates into the local
+                //     // coordiates of the big box, and then set the position of the small box to that
+                //     let position = this.box.worldToLocal(intersect.point)
+                //     this.box2.position.copy(position)
+                //     this.setSharedPosition(this.box2.position)
+                // }
                 // }
             } else {
                 // do something with the rays when not dragging or clicking.
@@ -639,14 +592,30 @@ let child = {
                 // this.box2.position.copy(newData.position)
             }
         }
+
         // Run force-graph ticker
         this.forceGraph.tickFrame();
 
-        if (this.running) {
-            this.forceGraph.traverseVisible(function (node) {
-                node.updateMatrix()
-            })
+        let ns = this.forceGraph.graphData()
         
+        this.el.sceneEl.camera.updateMatrices();
+        this.el.sceneEl.camera.getWorldQuaternion(this.cameraQuaternion)
+
+        this.forceGraph.getWorldQuaternion(this.nodeQuaternion).invert().multiply(this.cameraQuaternion);
+
+        ns.nodes.forEach((node) => {
+            node.__threeObj && node.__threeObj.quaternion.copy( this.nodeQuaternion );
+
+           // if (this.running) {
+                node.htmlGenerator && node.htmlGenerator.tick(time)
+           // }
+        }) 
+        this.forceGraph.traverseVisible(function (node) {
+            node.matrixNeedsUpdate = true;
+            //node.updateMatrix()
+        })
+
+        if (this.running) {
             this.scaleToFit();
         }
     }

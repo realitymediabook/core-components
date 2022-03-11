@@ -185,6 +185,11 @@
                 "type": "float",
                 "default": 1.0
             },
+            "textSize": {
+                "type": "float",
+                "default": "2"
+            },
+    
             "isNetworked": { 
                 "type": "bool",
                 "default": false

@@ -552,7 +552,7 @@ AFRAME.registerComponent('html-script', {
         }
 
         try {
-            this.script = new initScript(this.scriptData);
+            this.script = initScript(this.scriptData);
         } catch (e) {
             console.error("error creating script for " + this.componentName, e);
             this.script = null

@@ -475,31 +475,34 @@ AFRAME.registerComponent('portal', {
             const portalTitle = htmlComponents["PortalTitle"]
             // const portalSubtitle = htmlComponents["PortalSubtitle"]
 
-            this.portalTitle = await portalTitle(titleScriptData)
+            this.portalTitle = portalTitle(titleScriptData)
             // this.portalSubtitle = portalSubtitle(subtitleScriptData)
 
-            this.el.setObject3D('portalTitle', this.portalTitle.webLayer3D)
-            let size = this.portalTitle.getSize()
-            let titleScaleX = (scaleW.x) / this.data.textScale
-            let titleScaleY = (scaleW.y) / this.data.textScale
-            let titleScaleZ = (scaleW.z) / this.data.textScale
+            this.portalTitle.waitForReady().then(() => {
+                this.el.setObject3D('portalTitle', this.portalTitle.webLayer3D)
+                this.portalTitle.webLayer3D.matrixAutoUpdate = true
 
-            this.portalTitle.webLayer3D.scale.x /= titleScaleX
-            this.portalTitle.webLayer3D.scale.y /= titleScaleY
-            this.portalTitle.webLayer3D.scale.z /= titleScaleZ
+                let size = this.portalTitle.getSize()
+                let titleScaleX = (scaleW.x) / this.data.textScale
+                let titleScaleY = (scaleW.y) / this.data.textScale
+                let titleScaleZ = (scaleW.z) / this.data.textScale
 
-            this.portalTitle.webLayer3D.position.x = 
-                    this.data.textPosition.x / (scaleW.x)
-            this.portalTitle.webLayer3D.position.y = 
-                    (0.5 * scaleM.y) +
-                    (this.data.drawDoor ? 0.105 : 0) / (scaleW.y) +
-                    ((size.height * this.data.textScale) /2) / (scaleW.y) + 
-                    this.data.textPosition.y / (scaleW.y)
-            this.portalTitle.webLayer3D.position.z = 
-                    this.data.textPosition.z / (scaleW.z)
-            // this.el.setObject3D('portalSubtitle', this.portalSubtitle.webLayer3D)
+                this.portalTitle.webLayer3D.scale.x /= titleScaleX
+                this.portalTitle.webLayer3D.scale.y /= titleScaleY
+                this.portalTitle.webLayer3D.scale.z /= titleScaleZ
+
+                this.portalTitle.webLayer3D.position.x = 
+                        this.data.textPosition.x / (scaleW.x)
+                this.portalTitle.webLayer3D.position.y = 
+                        (0.5 * scaleM.y) +
+                        (this.data.drawDoor ? 0.105 : 0) / (scaleW.y) +
+                        ((size.height * this.data.textScale) /2) / (scaleW.y) + 
+                        this.data.textPosition.y / (scaleW.y)
+                this.portalTitle.webLayer3D.position.z = 
+                        this.data.textPosition.z / (scaleW.z)
+                // this.el.setObject3D('portalSubtitle', this.portalSubtitle.webLayer3D)
             // this.portalSubtitle.webLayer3D.position.x = 1
-            this.portalTitle.webLayer3D.matrixAutoUpdate = true
+            })
             // this.portalSubtitle.webLayer3D.matrixAutoUpdate = true
         }
         // this.materials.map((mat) => {
