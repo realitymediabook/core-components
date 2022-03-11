@@ -327,7 +327,7 @@ let child = {
         let scale = 150
 
         node._box = new THREE.Mesh(
-            new THREE.BoxGeometry(1/scale, 1/scale, 1/scale, 2, 2, 2),
+            new THREE.BoxGeometry(2/scale, 2/scale, 2/scale, 2, 2, 2),
             new THREE.MeshBasicMaterial({
                 color: node.color,
                 opacity: this.data.nodeOpacity
@@ -598,21 +598,32 @@ let child = {
 
         let ns = this.forceGraph.graphData()
         
+        // need to force this or we'll get the one from last frame
+        // which will cause the graph to swim when the head moves
         this.el.sceneEl.camera.updateMatrices();
         this.el.sceneEl.camera.getWorldQuaternion(this.cameraQuaternion)
 
         this.forceGraph.getWorldQuaternion(this.nodeQuaternion).invert().multiply(this.cameraQuaternion);
 
         ns.nodes.forEach((node) => {
+            // might not be created yet
             node.__threeObj && node.__threeObj.quaternion.copy( this.nodeQuaternion );
 
-           // if (this.running) {
-                node.htmlGenerator && node.htmlGenerator.tick(time)
-           // }
+            if (node._box) {
+                node._box.rotation.z += 0.03
+                //node._box.matrixNeedsUpdate = true
+            }
+
+            node.htmlGenerator && node.htmlGenerator.tick(time)
+
+            // if node.__threeObj isn't created, or it is and box hasn't yet been removed,
+            // we will tick
+           // if ((node._box || !node.__threeObj) && node.htmlGenerator) {
+            //   node.htmlGenerator.tick(time)
+           // }  
         }) 
         this.forceGraph.traverseVisible(function (node) {
             node.matrixNeedsUpdate = true;
-            //node.updateMatrix()
         })
 
         if (this.running) {
