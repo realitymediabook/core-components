@@ -37,8 +37,6 @@ import {
 } from 'd3-force-3d';
 
 import {vueComponents as htmlComponents} from "https://resources.realitymedia.digital/vue-apps/dist/hubs.js";
-import { Vector3 } from "three/src/math/Vector3";
-import { x } from "d3-force-3d/src/simulation";
 
 ///////////////////////////////////////////////////////////////////////////////
 // simple convenience functions 
@@ -161,6 +159,12 @@ let child = {
             type: "number",
             default: "2"
         },
+
+        jiggle: {
+            type: "boolean",
+            default: false
+        },
+
         // from the original forcegraph-component
         jsonUrl: { type: 'string', default: '' },
 
@@ -189,12 +193,11 @@ let child = {
     // unique for each instance of an object, which we specify with name.  If name does
     // name get used as a scheme parameter, it defaults to the name of it's parent glTF
     // object, which only works if those are uniquely named.
-    init: function () {
-        this.receivedUpdate = false;
-        
+    init: function () {        
         // disable networking for now, until we figure out how to handle it
-        this.data.isNetworked = false;
-        
+        // this.data.isNetworked = false;
+        // this.data.jiggle = true;
+
         this.startInit();
 
         const state = this.state = {}; // Internal state
@@ -217,6 +220,9 @@ let child = {
                     this.initialRun = false;
                     this.scaleToFit();
                     this.el.sceneEl.emit('updatePortals');
+                    if (this.data.jiggle) {
+                        setTimeout(this.jiggle, Math.random() * 1000 + 100); // try again in 100 milliseconds
+                    }
                 })
 
                 this.forceGraph.onEngineTick(() => {
@@ -227,11 +233,15 @@ let child = {
 
                     // until we RECEIVE an update, we will keep the graph up to date.
                     // when there are multiple people, we only update on drag.
-                    if (!this.receivedUpdate) {
-                        if (this.sharedData.nodes.length != this.forceGraph.graphData().nodes.length) {
-                            this.syncNodeData(this.forceGraph.graphData(), this.sharedData, true) ? this.setSharedData() : null;
-                        } else {
-                            this.testAndSetSharedData();
+                    // if there are others in the room, we should have received an update by the 
+                    // time we enter the room
+                    if (this.el.sceneEl.is("entered")) {
+                        if (document.querySelectorAll("[networked-avatar]").length  <= 1) {
+                            if (this.sharedData.nodes.length != this.forceGraph.graphData().nodes.length) {
+                                this.syncNodeData(this.forceGraph.graphData(), this.sharedData, true) ? this.setSharedData() : null;
+                            } else {
+                                this.testAndSetSharedData();
+                            }
                         }
                     }
                 });
@@ -260,6 +270,7 @@ let child = {
         // we'll just share the nodes. 
         this.sharedData = {
             nodes: [],
+            updates: []
         };
 
         // we should set fullName if we have a meaningful name
@@ -450,6 +461,26 @@ let child = {
         this.removeTemplate();
     },
 
+    jiggle: function () {
+        if (this.handleInteraction.isDragging) return
+
+        let graph = this.forceGraph.graphData()
+        let n = Math.round(Math.random() * (graph.nodes.length-1))
+
+        if (this.forceGraph.d3Force('charge').strength() > this.data.chargeForce) {
+            this.forceGraph.d3Force('charge').strength(this.data.chargeForce*0.9)
+        } else {
+            this.forceGraph.d3Force('charge').strength(this.data.chargeForce*1.1);
+        }
+
+        // let node = graph.nodes[n]
+        // node.vx = Math.random()*0.25 - 0.5
+        // node.vy = Math.random()*0.25 - 0.5
+        // node.vz = Math.random()*0.25 - 0.5
+        
+        this.forceGraph.resetCountdown();  // prevent freeze while dragging
+    },
+    
     // handle "interact" events for clickable entities
     clicked: function (evt) {
         // the evt.target will point at the object3D in this entity.  We can use
@@ -473,7 +504,7 @@ let child = {
         this.clickEvent = evt;
 
         // if we aren't dragging, may want to do something with a click
-        if (!this.dragging) {
+        if (!this.handleInteraction.isDragging) {
             // perhaps add a random force to the clicked node?
         }
     },
@@ -526,8 +557,6 @@ let child = {
         }
         let node = this.clickNode;
 
-        this.testAndSetSharedData();
-
         const initFixedPos = this.initialFixedPos;
         const initPos = this.initialPos;
         if (initFixedPos) {
@@ -542,6 +571,7 @@ let child = {
           delete[this.clickNodeSpaceOffset];
           delete[this.clickNodeSpace];
         }
+        this.sendSharedNode(this.clickNode);
 
         this.forceGraph
           .d3AlphaTarget(0)   // release engine low intensity
@@ -577,13 +607,53 @@ let child = {
                 ((!u.vz && !v.vz) || (u.vz && v.vz && Math.abs(u.vz - v.vz) < epsilon));
     },
     
-    setSharedNode(node, i) {
-        if (!this.almostEqualNode(this.sharedData.nodes[i], node, 0.5)) {
-            this.setSharedData();
+    sendSharedNode(node) {
+        let graph = this.forceGraph.graphData();
+        for (let i = 0; i < graph.nodes.length; i++) {
+            if (graph.nodes[i] == node && !this.almostEqualNode(this.sharedData.nodes[i], node, 0.5)) {
+                this.syncNodeData(graph, this.sharedData) 
+                for (let j=0; j<this.sharedData.nodes.length; j++) {
+                    this.sharedData.updates[j] = false;
+                }
+                this.sharedData.updates[i] = true;
+                this.setSharedData();
+            }
         }
     },
 
-    syncNodeData: function (src, dest, fixed) {
+    copyNode(node, destNode) {
+        let changed = false;
+        !node.color || destNode.color == node.color ? null : (destNode.color = node.color, changed = true);            
+        [/*"vx", "vy", "vz",*/ "x", "y", "z", "fx", "fy", "fz"].forEach(c => {
+            if (node[c]) {
+                destNode[c] = node[c];
+                changed = true;
+            } 
+            else if (destNode[c]) {
+                delete(destNode[c]);
+                changed = true;
+            }
+        });
+
+        // if (fixed) {
+        //     ["fx", "fy", "fz"].forEach(c => {
+        //         if (node[c]) {
+        //             destNode[c] = node[c];
+        //             changed = true;
+        //         } 
+        //         // else if (destNode[c]) {
+        //         //     delete(destNode[c]);
+        //         //     changed = true;
+        //         // }
+        //     });
+        // }
+        return changed
+    },
+
+    syncNodeData: function (src, dest) {
+        // if updates exists, we are copying to sharedData, otherwise we are copying from sharedData
+        let syncOut = dest.updates; 
+
         let changed = false;
         for (let i = 0; i< src.nodes.length; i++) {
             let node = src.nodes[i];
@@ -592,29 +662,14 @@ let child = {
                 changed = true;
             }
             let destNode = dest.nodes[i];
-            destNode.color == node.color ? null : (destNode.color = node.color, changed = true);            
-            [/*"vx", "vy", "vz",*/ "x", "y", "z"].forEach(c => {
-                if (node[c]) {
-                    destNode[c] = node[c];
+            if (syncOut) {
+                this.sharedData.updates[i] = this.copyNode(node, destNode)
+                changed = this.sharedData.updates[i] | changed;
+            } else {
+                if (src.updates[i] && this.copyNode(node, destNode)) {
                     changed = true;
-                } 
-                // else if (destNode[c]) {
-                //     delete(destNode[c]);
-                //     changed = true;
-                // }
-            });
-            // if (fixed) {
-            //     ["fx", "fy", "fz"].forEach(c => {
-            //         if (node[c]) {
-            //             destNode[c] = node[c];
-            //             changed = true;
-            //         } 
-            //         // else if (destNode[c]) {
-            //         //     delete(destNode[c]);
-            //         //     changed = true;
-            //         // }
-            //     });
-            // }
+                }
+            }
         }     
         return changed           
     },
@@ -638,10 +693,19 @@ let child = {
     updateCount: 0,
 
     // if the object is networked, this.stateSync will exist and should be called
-    setSharedData: function () {
+    setSharedData: function (node) {
+        let sharedDataToSend = {nodes: []};
         if (this.stateSync) {
             console.log("setSharedData: ", this.updateCount++);
-            return this.stateSync.setSharedData(this.sharedData);
+            for (let i = 0; i< this.sharedData.nodes.length; i++) {
+                if (this.sharedData.updates[i]) {
+                    sharedDataToSend.nodes[i] = this.sharedData.nodes[i];
+                } else {
+                    sharedDataToSend.nodes[i] = {}
+                }
+            }
+            sharedDataToSend.updates = this.sharedData.updates;
+            return this.stateSync.setSharedData(sharedDataToSend);
         }
         return true
     },
@@ -658,6 +722,7 @@ let child = {
     nodeQuaternion: new THREE.Quaternion(),
     _m1: new THREE.Matrix4(),
 
+    decayCount: 0,
     tick: function (time) {
         const state = this.state;
         const props = this.data;
@@ -692,11 +757,11 @@ let child = {
                 // Move fx/fy/fz (and x/y/z) of nodes based on object new position
                 ['x', 'y', 'z'].forEach(c => node[`f${c}`] = node[c] = newPos[c]);
 
+                this.sendSharedNode(node);
+
                 this.forceGraph
                     .d3AlphaTarget(0.3) // keep engine initialRun at low intensity throughout drag
                     .resetCountdown();  // prevent freeze while dragging
-
-
             } else {
                 // do something with the rays when not dragging or clicking.
                 // For example, we could display some additional content when hovering
@@ -734,12 +799,30 @@ let child = {
             if (this.stateSync.changed) {
                 this.stateSync.changed = false;
 
-                this.receivedUpdate = true;
                 // got the data, now do something with it
                 let newData = this.stateSync.dataObject;
 
-                if (this.syncNodeData(newData, this.forceGraph.graphData(), false)) {
-                    this.d3ReheatSimulation();
+                if (this.syncNodeData(newData, this.forceGraph.graphData())) {
+                    this.forceGraph
+                     .d3AlphaTarget(0.3)   // release engine low intensity
+                     .resetCountdown();  // let the engine readjust after receiving data                          
+                    //.d3ReheatSimulation();
+                    this.decayCount = 60;
+                }
+            }
+            if (this.decayCount > 0) {
+                this.decayCount--;
+                if (this.decayCount == 0) {
+                    this.forceGraph.d3AlphaTarget(0);
+                    let graph = this.forceGraph.graphData();
+                    for (let i = 0; i< graph.nodes.length; i++) {
+                        if (!this.handleInteraction.isDragging || this.clickNode !== graph.nodes[i]) {
+                            ['x', 'y', 'z'].forEach(c => {
+                                const fc = `f${c}`;
+                                delete(graph.nodes[i][fc]);
+                            });
+                        }
+                    }
                 }
             }
         }
