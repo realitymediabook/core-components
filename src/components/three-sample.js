@@ -243,7 +243,7 @@ let child = {
     // called to start the drag.  Will be called after clicked() if isDraggable is true
     dragStart: function (evt) {
         // set up the drag state
-        if (!this.handleInteraction.startDrag(evt)) {
+        if (!this.handleInteraction.startDrag(evt, this.clickIntersection.object)) {
             return
         }
 

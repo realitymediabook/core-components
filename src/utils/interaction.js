@@ -162,23 +162,27 @@ export class HandleInteraction {
         return null;
     }
 
-    startDrag(e) {
+    startDrag(e, object3D, intersection) {
         if (this.isDragging) {
             return false;
         }
         this.getRefs();
-
-        this.plane = e.object3D === this.leftEventer ? planeForLeftCursor : planeForRightCursor;
-
-        setMatrixWorld(this.plane, calculatePlaneMatrix(this.viewingCamera, this.el.object3D));
-        this.planeRotation.extractRotation(this.plane.matrixWorld);
-        this.planeUp.set(0, 1, 0).applyMatrix4(this.planeRotation);
-        this.planeRight.set(1, 0, 0).applyMatrix4(this.planeRotation);
+        object3D = object3D || this.el.object3D;
         this.raycaster = e.object3D === this.leftEventer ? this.leftRaycaster : this.rightRaycaster;
-        const intersection = this.raycastOnPlane();
 
-        // shouldn't happen, but we should check
-        if (!intersection) return false;
+        if (!intersection) {
+            this.plane = e.object3D === this.leftEventer ? planeForLeftCursor : planeForRightCursor;
+            setMatrixWorld(this.plane, calculatePlaneMatrix(this.viewingCamera, object3D));
+            this.planeRotation.extractRotation(this.plane.matrixWorld);
+            this.planeUp.set(0, 1, 0).applyMatrix4(this.planeRotation);
+            this.planeRight.set(1, 0, 0).applyMatrix4(this.planeRotation);
+            intersection = this.raycastOnPlane();
+
+            // shouldn't happen, but we should check
+            if (!intersection) return false;
+        } else {
+            this.plane = null
+        }
 
         this.isDragging = true;
         this.dragInteractor = {
@@ -190,7 +194,7 @@ export class HandleInteraction {
         this.initialDistanceToObject = this.objectToCam
             .subVectors(
                 this.camPosition.setFromMatrixPosition(this.viewingCamera.matrixWorld),
-                this.objectPosition.setFromMatrixPosition(this.el.object3D.matrixWorld)
+                this.objectPosition.setFromMatrixPosition(object3D.matrixWorld)
             )
             .length();
         this.intersectionRight = 0;
@@ -227,12 +231,19 @@ export class HandleInteraction {
 
     drag() {
         if (!this.isDragging) return null;
-        const intersection = this.raycastOnPlane();
-        if (!intersection) return null;
-        this.intersectionPoint.copy(intersection.point);
+        if (this.plane) {
+            const intersection = this.raycastOnPlane();
+            if (!intersection) return null;
+            this.intersectionPoint.copy(intersection.point);
+        } else {
+            this.intersectionPoint = this.raycaster.ray.origin.clone()
+            this.intersectionPoint.addScaledVector(this.raycaster.ray.direction, this.initialDistanceToObject);    
+        }
         this.dragVector.subVectors(this.intersectionPoint, this.initialIntersectionPoint);
-        this.delta.x = this.dragVector.dot(this.planeUp);
-        this.delta.y = this.dragVector.dot(this.planeRight);
+
+        // delta doesn't make much sense for non-planar dragging, but assign something anyway
+        this.delta.x = this.plane ? this.dragVector.dot(this.planeUp) : this.dragVector.x;
+        this.delta.y = this.plane ? this.dragVector.dot(this.planeRight) : this.dragVector.y;
         return this.dragVector;
     }
 }
@@ -248,8 +259,13 @@ export function interactiveComponentTemplate(componentName) {
             this.isDraggable = false;
             this.isInteractive = false;
             this.isNetworked = false;
-        },
 
+            // some methods
+            this.internalClicked = this.internalClicked.bind(this);
+            this.internalDragStart = this.internalDragStart.bind(this);
+            this.internalDragEnd = this.internalDragEnd.bind(this);
+        },        
+        
         finishInit: function () {
             let root = findAncestorWithComponent(this.el, "gltf-model-plus")
             root && root.addEventListener("model-loaded", (ev) => {
@@ -257,9 +273,21 @@ export function interactiveComponentTemplate(componentName) {
             });
         },
 
+        internalClicked: function(evt) {
+            this.clicked && this.clicked(evt)
+        },
+
+        internalDragStart: function(evt) {
+            this.dragStart(evt)
+        },
+
+        internalDragEnd: function(evt) {
+            this.dragEnd(evt)
+        },
+
         removeTemplate: function () {
             if (this.isInteractive) {
-                this.simpleContainer.object3D.removeEventListener('interact', this.clicked)
+                this.simpleContainer.object3D.removeEventListener('interact', this.internalClicked);
             }
             this.el.removeChild(this.simpleContainer)
             this.simpleContainer = null
@@ -383,7 +411,7 @@ export function interactiveComponentTemplate(componentName) {
 
                         // forward the 'interact' events to our object 
                         this.clicked = this.clicked.bind(this)
-                        this.simpleContainer.object3D.addEventListener('interact', this.clicked)
+                        this.simpleContainer.object3D.addEventListener('interact', this.internalClicked)
 
                         if (this.isDraggable) {
                             // we aren't going to really deal with this till we have a use case, but
@@ -399,12 +427,8 @@ export function interactiveComponentTemplate(componentName) {
 
                             this.dragStart = this.dragStart.bind(this)
                             this.dragEnd = this.dragEnd.bind(this)
-                            this.simpleContainer.object3D.addEventListener('holdable-button-down', (evt) => {
-                                this.dragStart(evt)
-                            })
-                            this.simpleContainer.object3D.addEventListener('holdable-button-up', (evt) => {
-                                this.dragEnd(evt)
-                            })
+                            this.simpleContainer.object3D.addEventListener('holdable-button-down', this.internalDragStart)
+                            this.simpleContainer.object3D.addEventListener('holdable-button-up', this.internalDragEnd)
                         }
 
                         //this.raycaster = new THREE.Raycaster()

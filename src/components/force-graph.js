@@ -37,6 +37,8 @@ import {
 } from 'd3-force-3d';
 
 import {vueComponents as htmlComponents} from "https://resources.realitymedia.digital/vue-apps/dist/hubs.js";
+import { Vector3 } from "three/src/math/Vector3";
+import { x } from "d3-force-3d/src/simulation";
 
 ///////////////////////////////////////////////////////////////////////////////
 // simple convenience functions 
@@ -183,7 +185,93 @@ let child = {
         linkWidth: { parse: parseAccessor, default: 0 }
     },
 
-    // Bind component methods
+    // fullName is used to generate names for the AFRame objects we create.  Should be
+    // unique for each instance of an object, which we specify with name.  If name does
+    // name get used as a scheme parameter, it defaults to the name of it's parent glTF
+    // object, which only works if those are uniquely named.
+    init: function () {
+        this.receivedUpdate = false;
+        
+        // disable networking for now, until we figure out how to handle it
+        this.data.isNetworked = false;
+        
+        this.startInit();
+
+        const state = this.state = {}; // Internal state
+        this.initialRun = false;
+
+        this.makeSpriteText = this.makeSpriteText.bind(this);
+        this.makeHTMLText = this.makeHTMLText.bind(this);
+
+        // setup FG object
+        if (!this.forceGraph) this.forceGraph = new ThreeForceGraph(); 
+
+        this.forceGraph
+            .onFinishUpdate(() => {
+                if (!this.simpleContainer.getObject3D("forcegraphGroup")) {
+                    this.simpleContainer.setObject3D('forcegraphGroup', this.forceGraph);
+                }
+
+                this.initialRun = true;
+                this.forceGraph.onEngineStop(() => {
+                    this.initialRun = false;
+                    this.scaleToFit();
+                    this.el.sceneEl.emit('updatePortals');
+                })
+
+                this.forceGraph.onEngineTick(() => {
+                    // comment out:  we aren't going to rescale after the first
+                    // layout is done, since it will be weird if a user drags and then
+                    // it rescales when they let go
+                    //this.initialRun = true;
+
+                    // until we RECEIVE an update, we will keep the graph up to date.
+                    // when there are multiple people, we only update on drag.
+                    if (!this.receivedUpdate) {
+                        if (this.sharedData.nodes.length != this.forceGraph.graphData().nodes.length) {
+                            this.syncNodeData(this.forceGraph.graphData(), this.sharedData, true) ? this.setSharedData() : null;
+                        } else {
+                            this.testAndSetSharedData();
+                        }
+                    }
+                });
+
+                //this.forceGraph.d3Force('charge').strength(-200);
+                // while (initialRun) {
+                //     this.forceGraph.tickFrame();
+                // }
+            })
+
+        // want to use these forces
+        this.forceGraph.d3Force('x', d3ForceX());
+        this.forceGraph.d3Force('y', d3ForceY());
+        this.forceGraph.d3Force('z', d3ForceZ());
+
+        // override the defaults in the template
+        this.isInteractive = this.data.isInteractive;
+        this.isNetworked = this.data.isNetworked;
+        this.isDraggable = this.data.isDraggable;
+
+        // some click/drag state;
+        this.clickEvent = null;
+        this.clickIntersection = null;
+        
+        // our shared object state. We don't need to share links, they don't change.  So
+        // we'll just share the nodes. 
+        this.sharedData = {
+            nodes: [],
+        };
+
+        // we should set fullName if we have a meaningful name
+        if (this.data.name && this.data.name.length > 0) {
+            this.fullName = this.data.name;
+        }
+
+        // finish the initialization
+        this.finishInit();
+    },
+
+    // Utility methods
     getGraphBbox: function () {
         if (!this.forceGraph) {
             // Got here before component init -> initialize forceGraph
@@ -231,82 +319,21 @@ let child = {
             // the scale to be the smaller of the two
             let scale = Math.min(sizeH, sizeW);
 
-            scale *= this.forceGraph.scale.x
+            scale *= this.forceGraph.scale.x;
             this.forceGraph.scale.set(scale, scale, scale);
             this.forceGraph.updateMatrix();
         }
     },
 
-
-    // fullName is used to generate names for the AFRame objects we create.  Should be
-    // unique for each instance of an object, which we specify with name.  If name does
-    // name get used as a scheme parameter, it defaults to the name of it's parent glTF
-    // object, which only works if those are uniquely named.
-    init: function () {
-        this.startInit();
-
-        const state = this.state = {}; // Internal state
-        this.running = false;
-
-        this.makeSpriteText = this.makeSpriteText.bind(this);
-        this.makeHTMLText = this.makeHTMLText.bind(this);
-
-        // setup FG object
-        if (!this.forceGraph) this.forceGraph = new ThreeForceGraph(); 
-
-        this.forceGraph
-            .onFinishUpdate(() => {
-                if (!this.simpleContainer.getObject3D("forcegraphGroup")) {
-                    this.simpleContainer.setObject3D('forcegraphGroup', this.forceGraph)
-                }
-
-                this.running = true;
-                this.forceGraph.onEngineStop(() => {
-                    this.running = false;
-                    this.scaleToFit();
-                    this.el.sceneEl.emit('updatePortals')
-                })
-
-                this.forceGraph.onEngineTick(() => {
-                    // comment out:  we aren't going to rescale after the first
-                    // layout is done, since it will be weird if a user drags and then
-                    // it rescales when they let go
-                    //this.running = true;
-                })
-
-                //this.forceGraph.d3Force('charge').strength(-200);
-                // while (running) {
-                //     this.forceGraph.tickFrame();
-                // }
-            })
-
-        // want to use these forces
-        this.forceGraph.d3Force('x', d3ForceX());
-        this.forceGraph.d3Force('y', d3ForceY());
-        this.forceGraph.d3Force('z', d3ForceZ());
-
-        // override the defaults in the template
-        this.isInteractive = this.data.isInteractive;
-        this.isNetworked = this.data.isNetworked;
-        this.isDraggable = this.data.isDraggable;
-
-        // our potentiall-shared object state 
-        this.sharedData = {
-        };
-
-        // some click/drag state
-        this.clickEvent = null
-        this.clickIntersection = null
-
-        // we should set fullName if we have a meaningful name
-        if (this.data.name && this.data.name.length > 0) {
-            this.fullName = this.data.name;
+    getGraphObj: function(object) {
+        let obj = object;
+        // recurse up object chain until finding the graph object
+        while (obj && !obj.hasOwnProperty('__graphObjType')) {
+          obj = obj.parent;
         }
-
-        // finish the initialization
-        this.finishInit();
+        return obj;
     },
-
+      
     makeSpriteText: function (node) {
         const sprite = new SpriteText(node.name);
         sprite.material.depthWrite = false; // make sprite background transparent
@@ -316,15 +343,10 @@ let child = {
     },
 
     htmlGenerator: null,
-
-    // do some stuff to get async data.  Called by initTemplate()
-    loadData: async function () {
-    },
-    
     makeHTMLText: function (node) {    
         let ret = new THREE.Object3D();
 
-        let scale = 150
+        let scale = 150;
 
         node._box = new THREE.Mesh(
             new THREE.BoxGeometry(2/scale, 2/scale, 2/scale, 2, 2, 2),
@@ -334,7 +356,7 @@ let child = {
             })
         );
         node._box.matrixAutoUpdate = true;
-        ret.add(node._box)
+        ret.add(node._box);
 
         var titleScriptData = {
             text: node.name,
@@ -342,16 +364,16 @@ let child = {
             size: this.data.textSize
         }
 
-        node.htmlGenerator = htmlComponents["GraphLabel"](titleScriptData)
+        node.htmlGenerator = htmlComponents["GraphLabel"](titleScriptData);
         //ret.add(this.htmlGenerator.webLayer3D);
-        node.htmlGenerator.webLayer3D.matrixAutoUpdate = true
+        node.htmlGenerator.webLayer3D.matrixAutoUpdate = true;
 
-        ret.scale.x = scale
-        ret.scale.y = scale
-        ret.scale.z = scale
+        ret.scale.x = scale;
+        ret.scale.y = scale;
+        ret.scale.z = scale;
 
         node.htmlGenerator.waitForReady().then(() => {    
-            node.htmlGenerator.webLayer3D.contentMesh.material.opacity = this.data.nodeOpacity        
+            node.htmlGenerator.webLayer3D.contentMesh.material.opacity = this.data.nodeOpacity      ;  
             ret.add(node.htmlGenerator.webLayer3D);
             ret.remove(node._box);
             node._box = null;
@@ -411,6 +433,10 @@ let child = {
         }
     },
 
+    // do some stuff to get async data.  Called by initTemplate()
+    loadData: async function () {
+    },
+        
     // called by initTemplate() when the component is being processed.  Here, we create
     // the three.js objects we want, and add them to simpleContainer (an AFrame node 
     // the template created for us).
@@ -421,7 +447,7 @@ let child = {
     // is destroyed
     remove: function () {
         this.simpleContainer.removeObject3D('forcegraphGroup');
-        this.removeTemplate()
+        this.removeTemplate();
     },
 
     // handle "interact" events for clickable entities
@@ -431,38 +457,95 @@ let child = {
         // hit information about which object3Ds in our object were hit.  We store
         // the one that was clicked here, so we know which it was as we drag around
         this.clickIntersection = this.handleInteraction.getIntersection(evt.object3D, [evt.target]);
-        this.clickEvent = evt;
 
         if (!this.clickIntersection) {
             console.warn("click didn't hit anything; shouldn't happen");
             return;
         }
 
-        // this.clickIntersection.object 
-        // this.state.hoverObj && this.data['on' + (this.state.hoverObj.__graphObjType === 'node' ? 'Node' : 'Link') + 'Click'](this.state.hoverObj.__data)
+        let node = this.getGraphObj(this.clickIntersection.object)
+        if (node.__graphObjType != 'node') {
+            this.clickIntersection = null;
+            return;
+        }
+
+        this.clickNode = node.__data;
+        this.clickEvent = evt;
+
+        // if we aren't dragging, may want to do something with a click
+        if (!this.dragging) {
+            // perhaps add a random force to the clicked node?
+        }
     },
 
     // called to start the drag.  Will be called after clicked() if isDraggable is true
     dragStart: function (evt) {
         // set up the drag state
-        if (!this.handleInteraction.startDrag(evt)) {
-            return
+        if (!this.handleInteraction.startDrag(evt, this.clickNode.__threeObj, this.clickIntersection)) {
+            return;
+        }
+        // if (!this.handleInteraction.startRotateDrag(evt, this.clickNode._threeObj)) {
+        //     return;
+        // }
+
+        // clicked on something that wasn't a node, like a link
+        if (!this.clickIntersection) {
+            return;
         }
 
-        // // grab a copy of the current orientation of the object we clicked
-        // if (this.clickIntersection.object == this.box) {
-        //     this.initialEuler.copy(this.box.rotation)
-        // } else if (this.clickIntersection.object == this.box2) {
-        //     this.box2.material.color.set("red")
-        // }
+        // the initial positions of the draggable object node
+        let node = this.clickNode;
+        this.initialFixedPos = {fx: node.fx, fy: node.fy, fz: node.fz};
+ 
+        this.initialPos = new THREE.Vector3(node.x, node.y, node.z);
+
+        // console.log("dragStart:  initialPos: ", this.initialPos);
+        // console.log("dragStart:  initialWorld: ", this.handleInteraction.initialIntersectionPoint);
+
+        this.clickNodeSpace = node.__threeObj.parent.worldToLocal(this.handleInteraction.initialIntersectionPoint.clone());
+        // console.log("dragStart:  clickNodeSpace: ", this.clickNodeSpace);
+        let offset = this.clickNodeSpace.sub(this.initialPos);
+        
+        // console.log("dragStart:  offset: ", offset);
+        offset.applyQuaternion(node.__threeObj.quaternion.clone().invert());
+        // console.log("dragStart:  offset: ", offset);
+        
+        this.clickNodeSpaceOffset = offset;
+
+        // lock node
+        ['x', 'y', 'z'].forEach(c => node[`f${c}`] = node[c]);
     },
 
     // called when the button is released to finish the drag
-    dragEnd: function (evt) {
+    dragEnd: function (evt) {        
         this.handleInteraction.endDrag(evt)
-        // if (this.clickIntersection.object == this.box) {} else if (this.clickIntersection.object == this.box2) {
-        //     this.box2.material.color.set("black")
-        // }
+
+        // clicked on something that wasn't a node, like a link
+        if (!this.clickIntersection) {
+            return
+        }
+        let node = this.clickNode;
+
+        this.testAndSetSharedData();
+
+        const initFixedPos = this.initialFixedPos;
+        const initPos = this.initialPos;
+        if (initFixedPos) {
+          ['x', 'y', 'z'].forEach(c => {
+            const fc = `f${c}`;
+            if (initFixedPos[fc] === undefined) {
+              delete(node[fc]);
+            }
+          });
+          delete(this.initialFixedPos);
+          delete(this.initialPos);
+          delete[this.clickNodeSpaceOffset];
+          delete[this.clickNodeSpace];
+        }
+
+        this.forceGraph
+          .d3AlphaTarget(0)   // release engine low intensity
+          .resetCountdown();  // let the engine readjust after releasing fixed nodes
     },
 
     // the method setSharedData() always sets the shared data, causing a network update.  
@@ -481,10 +564,84 @@ let child = {
     //     }
     // },
 
+    almostEqualNode(u, v, epsilon) {
+        if (!u && !v) return true;
+        if ((!u && v) || (!v && u)) return false; 
+        return  u.color === v.color && 
+                Math.abs(u.x - v.x) < epsilon && Math.abs(u.y - v.y) < epsilon && Math.abs(u.z - v.z) < epsilon &&
+                ((!u.fx && !v.fx) || (u.fx && v.fx && Math.abs(u.fx - v.fx) < epsilon)) && 
+                ((!u.fy && !v.fy) || (u.fy && v.fy && Math.abs(u.fy - v.fy) < epsilon)) &&
+                ((!u.fz && !v.fz) || (u.fz && v.fz && Math.abs(u.fz - v.fz) < epsilon)) &&
+                ((!u.vx && !v.vx) || (u.vx && v.vx && Math.abs(u.vx - v.vx) < epsilon)) &&
+                ((!u.vy && !v.vy) || (u.vy && v.vy && Math.abs(u.vy - v.vy) < epsilon)) &&
+                ((!u.vz && !v.vz) || (u.vz && v.vz && Math.abs(u.vz - v.vz) < epsilon));
+    },
+    
+    setSharedNode(node, i) {
+        if (!this.almostEqualNode(this.sharedData.nodes[i], node, 0.5)) {
+            this.setSharedData();
+        }
+    },
+
+    syncNodeData: function (src, dest, fixed) {
+        let changed = false;
+        for (let i = 0; i< src.nodes.length; i++) {
+            let node = src.nodes[i];
+            if (dest.nodes.length <= i) {
+                dest.nodes.push({});
+                changed = true;
+            }
+            let destNode = dest.nodes[i];
+            destNode.color == node.color ? null : (destNode.color = node.color, changed = true);            
+            [/*"vx", "vy", "vz",*/ "x", "y", "z"].forEach(c => {
+                if (node[c]) {
+                    destNode[c] = node[c];
+                    changed = true;
+                } 
+                // else if (destNode[c]) {
+                //     delete(destNode[c]);
+                //     changed = true;
+                // }
+            });
+            // if (fixed) {
+            //     ["fx", "fy", "fz"].forEach(c => {
+            //         if (node[c]) {
+            //             destNode[c] = node[c];
+            //             changed = true;
+            //         } 
+            //         // else if (destNode[c]) {
+            //         //     delete(destNode[c]);
+            //         //     changed = true;
+            //         // }
+            //     });
+            // }
+        }     
+        return changed           
+    },
+
+    testAndSetSharedData: function () {
+        let graph = this.forceGraph.graphData();
+        let changed = false;
+        for (let i = 0; i< graph.nodes.length; i++) {
+            let node = graph.nodes[i];
+            let destNode = this.sharedData.nodes[i];
+            if (!this.almostEqualNode(destNode, node, 0.5)) {
+                changed = true;
+                break;
+            }
+        }
+        if (changed) {
+            this.syncNodeData(this.forceGraph.graphData(), this.sharedData)? this.setSharedData() : null;
+        }
+    },
+
+    updateCount: 0,
+
     // if the object is networked, this.stateSync will exist and should be called
     setSharedData: function () {
         if (this.stateSync) {
-            return this.stateSync.setSharedData(this.sharedData)
+            console.log("setSharedData: ", this.updateCount++);
+            return this.stateSync.setSharedData(this.sharedData);
         }
         return true
     },
@@ -499,6 +656,7 @@ let child = {
     cameraMatrix: new THREE.Matrix4(),
     cameraQuaternion: new THREE.Quaternion(),
     nodeQuaternion: new THREE.Quaternion(),
+    _m1: new THREE.Matrix4(),
 
     tick: function (time) {
         const state = this.state;
@@ -510,60 +668,54 @@ let child = {
             // if we're dragging, update the rotation
             if (this.isDraggable && this.handleInteraction.isDragging) {
 
-                // do something with the dragging. Here, we'll use delta.x and delta.y
-                // to rotate the object.  These values are set as a relative offset in
-                // the plane perpendicular to the view, so we'll use them to offset the
-                // x and y rotation of the object.  This is a TERRIBLE way to do rotate,
-                // but it's a simple example.
-                // if (this.clickIntersection.object == this.box) {
-                //     // update drag state
-                //     this.handleInteraction.drag()
+                // do something with the dragging. Here, we'll use deltaVector
+                // to move the node around. These values are set as a relative offset in
+                // the plane perpendicular to the view.
+                // update drag state
+                this.handleInteraction.drag();
 
-                //     // compute a new rotation based on the delta
-                //     this.box.rotation.set(this.initialEuler.x - this.handleInteraction.delta.x,
-                //         this.initialEuler.y + this.handleInteraction.delta.y,
-                //         this.initialEuler.z)
+                // clicked on something that wasn't a node, like a link
+                if (!this.clickIntersection) {
+                    return;
+                }
+                let node = this.clickNode;
+                //console.log("drag: newWorldPos: ", this.handleInteraction.intersectionPoint);
 
-                //     // update the shared rotation
-                //     this.setSharedEuler(this.box.rotation)
-                // } else if (this.clickIntersection.object == this.box2) {
+                let newPos = node.__threeObj.parent.worldToLocal(this.handleInteraction.intersectionPoint.clone());
+                // console.log("    : newPos: ", newPos);
+                let offset = this.clickNodeSpaceOffset.clone().applyQuaternion(node.__threeObj.quaternion);
+                // console.log("    :  offset: ", offset);
+        
+                newPos.sub(offset);
+                // console.log("    : new graph position: ", newPos);
 
-                // we want to hit test on our boxes, but only want to know if/where
-                // we hit the big box.  So first hide the small box, and then do a
-                // a hit test, which can only result in a hit on the big box.  
-                // this.box2.visible = false
-                // let intersect = this.handleInteraction.getIntersection(this.handleInteraction.dragInteractor, [this.box])
-                // this.box2.visible = true
+                // Move fx/fy/fz (and x/y/z) of nodes based on object new position
+                ['x', 'y', 'z'].forEach(c => node[`f${c}`] = node[c] = newPos[c]);
 
-                // // if we hit the big box, move the small box to the position of the hit
-                // if (intersect) {
-                //     // the intersect object is a THREE.Intersection object, which has the hit point
-                //     // specified in world coordinates.  So we move those coordinates into the local
-                //     // coordiates of the big box, and then set the position of the small box to that
-                //     let position = this.box.worldToLocal(intersect.point)
-                //     this.box2.position.copy(position)
-                //     this.setSharedPosition(this.box2.position)
-                // }
-                // }
+                this.forceGraph
+                    .d3AlphaTarget(0.3) // keep engine initialRun at low intensity throughout drag
+                    .resetCountdown();  // prevent freeze while dragging
+
+
             } else {
                 // do something with the rays when not dragging or clicking.
                 // For example, we could display some additional content when hovering
-                let passthruInteractor = this.handleInteraction.getInteractors(this.simpleContainer);
+                //let passthruInteractor = this.handleInteraction.getInteractors(this.simpleContainer);
 
                 // we will set yellow if either interactor hits the box. We'll keep track of if
                 // one does
-                let setIt = false;
+               // let setIt = false;
 
                 // for each of our interactors, check if it hits the scene
-                for (let i = 0; i < passthruInteractor.length; i++) {
-                    let intersection = this.handleInteraction.getIntersection(passthruInteractor[i], this.simpleContainer.object3D.children)
+                // for (let i = 0; i < passthruInteractor.length; i++) {
+                //     let intersection = this.handleInteraction.getIntersection(passthruInteractor[i], this.simpleContainer.object3D.children)
 
                     // // if we hit the small box, set the color to yellow, and flag that we hit
                     // if (intersection && intersection.object === this.box2) {
                     //     this.box2.material.color.set("yellow")
                     //     setIt = true
                     // }
-                }
+                // }
 
                 // if we didn't hit, make sure the color remains black
                 // if (!setIt) {
@@ -580,28 +732,27 @@ let child = {
 
             // if the state has changed in the networked data, update our html object
             if (this.stateSync.changed) {
-                this.stateSync.changed = false
+                this.stateSync.changed = false;
 
+                this.receivedUpdate = true;
                 // got the data, now do something with it
-                let newData = this.stateSync.dataObject
-                // this.sharedData.color.set(newData.color)
-                // this.sharedData.rotation.copy(newData.rotation)
-                // this.sharedData.position.copy(newData.position)
-                // this.box.material.color.set(newData.color)
-                // this.box.rotation.copy(newData.rotation)
-                // this.box2.position.copy(newData.position)
+                let newData = this.stateSync.dataObject;
+
+                if (this.syncNodeData(newData, this.forceGraph.graphData(), false)) {
+                    this.d3ReheatSimulation();
+                }
             }
         }
 
         // Run force-graph ticker
         this.forceGraph.tickFrame();
 
-        let ns = this.forceGraph.graphData()
+        let ns = this.forceGraph.graphData();
         
         // need to force this or we'll get the one from last frame
         // which will cause the graph to swim when the head moves
         this.el.sceneEl.camera.updateMatrices();
-        this.el.sceneEl.camera.getWorldQuaternion(this.cameraQuaternion)
+        this.el.sceneEl.camera.getWorldQuaternion(this.cameraQuaternion);
 
         this.forceGraph.getWorldQuaternion(this.nodeQuaternion).invert().multiply(this.cameraQuaternion);
 
@@ -610,8 +761,8 @@ let child = {
             node.__threeObj && node.__threeObj.quaternion.copy( this.nodeQuaternion );
 
             if (node._box) {
-                node._box.rotation.z += 0.03
-                //node._box.matrixNeedsUpdate = true
+                node._box.rotation.z += 0.03;
+                //node._box.matrixNeedsUpdate = true;
             }
 
             node.htmlGenerator && node.htmlGenerator.tick(time)
@@ -619,14 +770,14 @@ let child = {
             // if node.__threeObj isn't created, or it is and box hasn't yet been removed,
             // we will tick
            // if ((node._box || !node.__threeObj) && node.htmlGenerator) {
-            //   node.htmlGenerator.tick(time)
+            //   node.htmlGenerator.tick(time);
            // }  
         }) 
         this.forceGraph.traverseVisible(function (node) {
             node.matrixNeedsUpdate = true;
         })
 
-        if (this.running) {
+        if (this.initialRun) {
             this.scaleToFit();
         }
     }
@@ -639,4 +790,4 @@ AFRAME.registerComponent(componentName, {
 })
 
 // create and register the data component and it's NAF component with the AFrame scene
-registerSharedAFRAMEComponents(componentName)
+registerSharedAFRAMEComponents(componentName);
