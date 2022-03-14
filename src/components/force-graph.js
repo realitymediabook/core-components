@@ -696,7 +696,7 @@ let child = {
     setSharedData: function (node) {
         let sharedDataToSend = {nodes: []};
         if (this.stateSync) {
-            console.log("setSharedData: ", this.updateCount++);
+            //console.log("setSharedData: ", this.updateCount++);
             for (let i = 0; i< this.sharedData.nodes.length; i++) {
                 if (this.sharedData.updates[i]) {
                     sharedDataToSend.nodes[i] = this.sharedData.nodes[i];
