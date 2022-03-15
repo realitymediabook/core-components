@@ -319,9 +319,9 @@ let child = {
     scaleToFit: function () {
         let bbox = this.forceGraph.getGraphBbox();
         if (bbox) {
-            let sizeH = bbox.y[1] - bbox.y[0];
-            let sizeW = bbox.x[1] - bbox.x[0];
-            sizeW = Math.max(sizeW, bbox.z[1] - bbox.z[0]);
+            let sizeH = bbox.y[1] - bbox.y[0] + 1;
+            let sizeW = bbox.x[1] - bbox.x[0] + 1;
+            sizeW = Math.max(sizeW, bbox.z[1] - bbox.z[0] + 1);
 
             if (sizeW > 0 && sizeH > 0) {
                 sizeH = this.data.height / sizeH;
@@ -335,7 +335,7 @@ let child = {
                 this.forceGraph.scale.set(scale, scale, scale);
                 this.forceGraph.updateMatrix();
             } else {
-                console.log("scaleToFit size error, sizeW/H scale : ", sizeH, sizeW, scale);
+                console.log("scaleToFit size error, sizeW/H scale : ", sizeH, sizeW);
             }
         }
     },
