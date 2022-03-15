@@ -330,9 +330,14 @@ let child = {
             // the scale to be the smaller of the two
             let scale = Math.min(sizeH, sizeW);
 
-            scale *= this.forceGraph.scale.x;
-            this.forceGraph.scale.set(scale, scale, scale);
-            this.forceGraph.updateMatrix();
+            if (scale > 0) {
+
+                scale *= this.forceGraph.scale.x;
+                this.forceGraph.scale.set(scale, scale, scale);
+                this.forceGraph.updateMatrix();
+            } else {
+                console.log("scaleToFit size error, sizeW/H scale : ", sizeH, sizeW, scale);
+            }
         }
     },
 
