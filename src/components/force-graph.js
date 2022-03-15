@@ -218,7 +218,7 @@ let child = {
                 this.initialRun = true;
                 this.forceGraph.onEngineStop(() => {
                     this.initialRun = false;
-                    this.scaleToFit();
+                    //this.scaleToFit();
                     this.el.sceneEl.emit('updatePortals');
                     if (this.data.jiggle) {
                         setTimeout(this.jiggle, Math.random() * 1000 + 100); // try again in 100 milliseconds
