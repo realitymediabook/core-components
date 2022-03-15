@@ -323,14 +323,13 @@ let child = {
             let sizeW = bbox.x[1] - bbox.x[0];
             sizeW = Math.max(sizeW, bbox.z[1] - bbox.z[0]);
 
-            sizeH = this.data.height / sizeH;
-            sizeW = this.data.width / sizeW;
+            if (sizeW > 0 && sizeH > 0) {
+                sizeH = this.data.height / sizeH;
+                sizeW = this.data.width / sizeW;
 
-            // want both to fix their respective sizes, so we want
-            // the scale to be the smaller of the two
-            let scale = Math.min(sizeH, sizeW);
-
-            if (scale > 0) {
+                // want both to fix their respective sizes, so we want
+                // the scale to be the smaller of the two
+                let scale = Math.min(sizeH, sizeW);
 
                 scale *= this.forceGraph.scale.x;
                 this.forceGraph.scale.set(scale, scale, scale);
