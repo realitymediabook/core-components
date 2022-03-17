@@ -8,17 +8,18 @@ import '../components/region-hider.js'
 import '../components/video-control-pad'
 import '../components/three-sample.js'
 import "../components/force-graph.js"
+import "../components/show-hide.js"
 
-AFRAME.GLTFModelPlus.registerComponent('immersive-360', 'immersive-360')
-AFRAME.GLTFModelPlus.registerComponent('portal', 'portal')
-AFRAME.GLTFModelPlus.registerComponent('shader', 'shader')
-AFRAME.GLTFModelPlus.registerComponent('parallax', 'parallax')
-AFRAME.GLTFModelPlus.registerComponent('html-script', 'html-script')
-AFRAME.GLTFModelPlus.registerComponent('region-hider', 'region-hider')
-AFRAME.GLTFModelPlus.registerComponent('video-control-pad', 'video-control-pad')
-
-AFRAME.GLTFModelPlus.registerComponent('test-cube', 'test-cube')
-AFRAME.GLTFModelPlus.registerComponent('force-graph', 'force-graph')
+AFRAME.GLTFModelPlus.registerComponent('immersive-360', 'immersive-360');
+AFRAME.GLTFModelPlus.registerComponent('portal', 'portal');
+AFRAME.GLTFModelPlus.registerComponent('shader', 'shader');
+AFRAME.GLTFModelPlus.registerComponent('parallax', 'parallax');
+AFRAME.GLTFModelPlus.registerComponent('html-script', 'html-script');
+AFRAME.GLTFModelPlus.registerComponent('region-hider', 'region-hider');
+AFRAME.GLTFModelPlus.registerComponent('video-control-pad', 'video-control-pad');
+AFRAME.GLTFModelPlus.registerComponent('show-hide', 'show-hide');
+AFRAME.GLTFModelPlus.registerComponent('test-cube', 'test-cube');
+AFRAME.GLTFModelPlus.registerComponent('force-graph', 'force-graph');
 
 // do a simple monkey patch to see if it works
 

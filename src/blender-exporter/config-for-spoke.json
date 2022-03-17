@@ -169,6 +169,15 @@
             }
         }
     },
+    "show-hide" : {
+        "category": "AEL",
+        "nodes": ["Group", "Model", "Image"],
+        "properties": {
+            "radius": { "type": "float", "default": 1 },
+            "showClose": { "type": "bool", "default": true }
+        }
+    },
+    
     "force-graph": {
         "category": "AEL",
         "nodes": ["Group"],
