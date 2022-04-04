@@ -387,7 +387,7 @@ AFRAME.registerComponent('portal', {
             invertWarpColor: this.portalType == 1 ? 1 : 0
         })
 
-        if (this.portalType == 1) {
+        if (this.portalType == 1 && this.portalTarget != null) {
             this.system.getCubeMap(this.portalTarget, this.data.secondaryTarget).then( urls => {
                 //const urls = [cubeMapPosX, cubeMapNegX, cubeMapPosY, cubeMapNegY, cubeMapPosZ, cubeMapNegZ];
                 const texture = new Promise((resolve, reject) =>
@@ -734,18 +734,22 @@ AFRAME.registerComponent('portal', {
                 resolve(null)
             } else if (this.portalType  == 1) {
                 // first wait for the hub_id
-                this.system.getRoomHubId(this.portalTarget).then(hub_id => {
-                    this.hub_id = hub_id
-            
-                    // the target is another room, resolve with the URL to the room
-                    this.system.getRoomURL(this.portalTarget).then(url => { 
-                        if (this.data.secondaryTarget && this.data.secondaryTarget.length > 0) {
-                            resolve(url + "#" + this.data.secondaryTarget)
-                        } else {
-                            resolve(url) 
-                        }
+                if (this.portalTarget != null) {
+                    this.system.getRoomHubId(this.portalTarget).then(hub_id => {
+                        this.hub_id = hub_id
+                
+                        // the target is another room, resolve with the URL to the room
+                        this.system.getRoomURL(this.portalTarget).then(url => { 
+                            if (this.data.secondaryTarget && this.data.secondaryTarget.length > 0) {
+                                resolve(url + "#" + this.data.secondaryTarget)
+                            } else {
+                                resolve(url) 
+                            }
+                        })
                     })
-                })
+                } else {
+                    resolve(null)
+                }
             } else if (this.portalType == 2) {
                   // now find the portal within the room.  The portals should come in pairs with the same portalTarget
                 const portals = Array.from(document.querySelectorAll(`[portal]`))
@@ -800,7 +804,11 @@ AFRAME.registerComponent('portal', {
     setPortalInfo: function(portalType, portalTarget, color) {
         if (portalType === "room") {
             this.portalType = 1;
-            this.portalTarget = parseInt(portalTarget)
+            if (portalTarget.length > 0) {
+                this.portalTarget = parseInt(portalTarget)
+            } else {
+                this.portalTarget = null
+            }
         } else if (portalType === "portal") {
             this.portalType = 2;
             this.portalTarget = portalTarget
