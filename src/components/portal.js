@@ -730,8 +730,9 @@ AFRAME.registerComponent('portal', {
 
     getOther: function () {
         return new Promise((resolve) => {
-            if (this.portalType == 0) resolve(null)
-            if (this.portalType  == 1) {
+            if (this.portalType == 0) {
+                resolve(null)
+            } else if (this.portalType  == 1) {
                 // first wait for the hub_id
                 this.system.getRoomHubId(this.portalTarget).then(hub_id => {
                     this.hub_id = hub_id
@@ -745,11 +746,25 @@ AFRAME.registerComponent('portal', {
                         }
                     })
                 })
-            }
-            if (this.portalType == 3) {
+            } else if (this.portalType == 2) {
+                  // now find the portal within the room.  The portals should come in pairs with the same portalTarget
+                const portals = Array.from(document.querySelectorAll(`[portal]`))
+                const other = portals.find((el) => el.components.portal.portalType == this.portalType &&
+                            el.components.portal.portalTarget === this.portalTarget && 
+                            el !== this.el)
+                if (other !== undefined) {
+                    // Case 1: The other portal already exists
+                    resolve(other);
+                    other.emit('pair', { other: this.el }) // Let the other know that we're ready
+                } else {
+                    // Case 2: We couldn't find the other portal, wait for it to signal that it's ready
+                    this.el.addEventListener('pair', (event) => { 
+                        resolve(event.detail.other)
+                    }, { once: true })
+                }
+            } else if (this.portalType == 3) {
                 resolve ("#" + this.portalTarget)
-            }
-            if (this.portalType == 4) {
+            } else if (this.portalType == 4) {
                 let url = window.location.origin + "/" + this.portalTarget;
                 this.hub_id = this.portalTarget
                 if (this.data.secondaryTarget && this.data.secondaryTarget.length > 0) {
@@ -757,22 +772,6 @@ AFRAME.registerComponent('portal', {
                 } else {
                     resolve(url) 
                 }
-            }
-
-            // now find the portal within the room.  The portals should come in pairs with the same portalTarget
-            const portals = Array.from(document.querySelectorAll(`[portal]`))
-            const other = portals.find((el) => el.components.portal.portalType == this.portalType &&
-                          el.components.portal.portalTarget === this.portalTarget && 
-                          el !== this.el)
-            if (other !== undefined) {
-                // Case 1: The other portal already exists
-                resolve(other);
-                other.emit('pair', { other: this.el }) // Let the other know that we're ready
-            } else {
-                // Case 2: We couldn't find the other portal, wait for it to signal that it's ready
-                this.el.addEventListener('pair', (event) => { 
-                    resolve(event.detail.other)
-                }, { once: true })
             }
         })
     },
