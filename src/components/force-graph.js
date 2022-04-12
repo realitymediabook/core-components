@@ -173,6 +173,7 @@ let child = {
         yForce: { type: 'number', default: 0 },
         zForce: { type: 'number', default: 0 },
         nodeId: { type: 'string', default: 'id' },
+        nodeRelSize: { type: 'number', default: 4 }, // volume per val unit
         nodeVal: { parse: parseAccessor, default: 'val' },
         nodeColor: { parse: parseAccessor, default: 'color' },
         nodeAutoColorBy: { parse: parseAccessor, default: '' }, // color nodes with the same field equally
@@ -383,9 +384,9 @@ let child = {
         //ret.add(this.htmlGenerator.webLayer3D);
         node.htmlGenerator.webLayer3D.matrixAutoUpdate = true;
 
-        ret.scale.x = scale;
-        ret.scale.y = scale;
-        ret.scale.z = scale;
+        ret.scale.x = scale * this.data.nodeRelSize;
+        ret.scale.y = scale * this.data.nodeRelSize;
+        ret.scale.z = scale * this.data.nodeRelSize;
 
         node.htmlGenerator.waitForReady().then(() => {    
             node.htmlGenerator.webLayer3D.contentMesh.material.opacity = this.data.nodeOpacity      ;  
@@ -409,6 +410,7 @@ let child = {
             'jsonUrl',
             'nodeId',
             'nodeVal',
+            'nodeRelSize',
             'nodeColor',
             'nodeAutoColorBy',
             'nodeOpacity',

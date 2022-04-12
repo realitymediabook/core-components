@@ -221,6 +221,7 @@
             "yForce": { "type": "float", "default": 0 },
             "zForce": { "type": "float", "default": 0 },
             "nodeId": { "type": "string", "default": "id" },
+            "nodeRelSize": { "type": "float", "default": 1.0 },
             "nodeVal": { "type": "string", "default": "val" },
             "nodeColor": { "type": "string", "default": "color" },
             "nodeAutoColorBy": { "type": "string", "default": "" },
