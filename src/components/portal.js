@@ -340,6 +340,11 @@ AFRAME.registerSystem('portal', {
     //return this.roomData.cubemaps.length > number ? this.roomData.cubemaps[number] : null;
   },
 
+  goToURL: async function (url) {
+      await this.fader.fadeOut();
+      window.location.href = url;
+  },
+
   teleportTo: async function (object) {
     this.teleporting = true
     await this.fader.fadeOut()
@@ -780,6 +785,10 @@ AFRAME.registerComponent('portal', {
         // }
     },
 
+    // hideRoom: function() {
+    //     const canvas = document.querySelector(".a-canvas");
+    //     canvas.classList.add("a-hidden");
+    // },      
     tick: function (time) {
         //this.material.uniforms.time.value = time / 1000
         if (!this.materials) { return }
@@ -812,10 +821,12 @@ AFRAME.registerComponent('portal', {
           // window.APP.utils.changeToHub
           if ((this.portalType == 1 || this.portalType == 4) && dist < 0.25) {
               if (!this.locationhref) {
-                this.locationhref = this.other
+                this.locationhref = this.other;
                 if (!APP.store.state.preferences.fastRoomSwitching) {
-                    console.log("set window.location.href to " + this.other)
-                    window.location.href = this.other
+                    console.log("set window.location.href to " + this.other);
+                    //this.hideRoom();
+                    //window.location.href = this.other;
+                    this.system.goToURL(this.other);
                 } else {
                     let wayPoint = this.data.secondaryTarget
                     const environmentScene = document.querySelector("#environment-scene");
@@ -833,20 +844,20 @@ AFRAME.registerComponent('portal', {
                         window.changeHub(this.hub_id).then(() => {
                             // environmentScene.addEventListener("model-loaded", () => {
                             //     console.log("Environment scene has loaded");
-                                goToWayPoint()
+                                goToWayPoint();
                             // })
                         })
                     }
                 }
             }
           } else if (this.portalType == 2 && dist < 0.25) {
-            this.system.teleportTo(this.other.object3D)
+            this.system.teleportTo(this.other.object3D);
           } else if (this.portalType == 3) {
               if (dist < 0.25) {
                 if (!this.locationhref) {
                   console.log("set window.location.hash to " + this.other)
-                  this.locationhref = this.other
-                  window.location.hash = this.other
+                  this.locationhref = this.other;
+                  window.location.hash = this.other;
                 }
               } else {
                   // if we set locationhref, we teleported.  when it
