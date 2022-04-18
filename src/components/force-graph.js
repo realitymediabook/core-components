@@ -26,7 +26,7 @@ import {
     interactiveComponentTemplate,
     registerSharedAFRAMEComponents,
 } from "../utils/interaction";
-
+import { downloadBlob  } from "../utils/utils";
 import SpriteText from 'three-spritetext';
 import ThreeForceGraph from "three-forcegraph";
 
@@ -190,7 +190,7 @@ let child = {
         linkWidth: { parse: parseAccessor, default: 0 }
     },
 
-    // fullName is used to generate names for the AFRame objects we create.  Should be
+    // data.name is used to generate names for the AFRame objects we create.  Should be
     // unique for each instance of an object, which we specify with name.  If name does
     // name get used as a scheme parameter, it defaults to the name of it's parent glTF
     // object, which only works if those are uniquely named.
@@ -208,10 +208,17 @@ let child = {
         this.makeHTMLText = this.makeHTMLText.bind(this);
 
         // setup FG object
-        if (!this.forceGraph) this.forceGraph = new ThreeForceGraph(); 
+        if (!this.forceGraph) {
+            this.forceGraph = new ThreeForceGraph(); 
+        }
+
+        this.forceGraph.matrixAutoUpdate = true;
 
         this.forceGraph
-            .onFinishUpdate(() => {
+          .d3AlphaDecay(0.05)
+          .cooldownTime(5000)
+//          .d3AlphaMin(0.001)
+          .onFinishUpdate(() => {
                 if (!this.simpleContainer.getObject3D("forcegraphGroup")) {
                     this.simpleContainer.setObject3D('forcegraphGroup', this.forceGraph);
                 }
@@ -274,11 +281,6 @@ let child = {
             updates: []
         };
 
-        // we should set fullName if we have a meaningful name
-        if (this.data.name && this.data.name.length > 0) {
-            this.fullName = this.data.name;
-        }
-
         // finish the initialization
         this.finishInit();
     },
@@ -318,6 +320,9 @@ let child = {
     },
 
     scaleToFit: function () {
+        this.forceGraph.scale.set(1,1,1);
+        this.forceGraph.updateMatrixWorld( true );
+
         let bbox = this.forceGraph.getGraphBbox();
         if (bbox) {
             let sizeH = bbox.y[1] - bbox.y[0] + 1;
@@ -331,10 +336,11 @@ let child = {
                 // want both to fix their respective sizes, so we want
                 // the scale to be the smaller of the two
                 let scale = Math.min(sizeH, sizeW);
-
-                scale *= this.forceGraph.scale.x;
+                //console.log("scale = ", scale, ", bbox = ", bbox)
                 this.forceGraph.scale.set(scale, scale, scale);
-                this.forceGraph.updateMatrix();
+                this.forceGraph.matrixNeedsUpdate = true;
+                this.forceGraph.updateMatrixWorld( true );
+
             } else {
                 console.log("scaleToFit size error, sizeW/H scale : ", sizeH, sizeW);
             }
@@ -380,20 +386,24 @@ let child = {
             size: this.data.textSize
         }
 
-        node.htmlGenerator = htmlComponents["GraphLabel"](titleScriptData);
-        //ret.add(this.htmlGenerator.webLayer3D);
-        node.htmlGenerator.webLayer3D.matrixAutoUpdate = true;
-
         ret.scale.x = scale * this.data.nodeRelSize;
         ret.scale.y = scale * this.data.nodeRelSize;
         ret.scale.z = scale * this.data.nodeRelSize;
+        ret.updateMatrix();
 
-        node.htmlGenerator.waitForReady().then(() => {    
-            node.htmlGenerator.webLayer3D.contentMesh.material.opacity = this.data.nodeOpacity      ;  
-            ret.add(node.htmlGenerator.webLayer3D);
-            ret.remove(node._box);
-            node._box = null;
-        })
+        // don't want to proceed until the cache is loaded
+        //window.APP.scene.systems.portal.waitForCache().then(() => {
+            node.htmlGenerator = htmlComponents["GraphLabel"](titleScriptData);
+            //ret.add(this.htmlGenerator.webLayer3D);
+            node.htmlGenerator.webLayer3D.matrixAutoUpdate = true;
+
+            node.htmlGenerator.waitForReady().then(() => {    
+                node.htmlGenerator.webLayer3D.contentMesh.material.opacity = this.data.nodeOpacity;  
+                ret.add(node.htmlGenerator.webLayer3D);
+                ret.remove(node._box);
+                node._box = null;
+            })
+        //})
         return ret;
 
 },
@@ -493,7 +503,16 @@ let child = {
         // handleInteraction.getInteractionTarget() to get the more precise 
         // hit information about which object3Ds in our object were hit.  We store
         // the one that was clicked here, so we know which it was as we drag around
-        this.clickIntersection = this.handleInteraction.getIntersection(evt.object3D, [evt.target]);
+        let ns = this.forceGraph.graphData();
+        let targets = [];
+        ns.nodes.forEach((node) => {
+            // might not be created yet
+            if (node.__threeObj && node.__threeObj.__graphObjType == 'node') {
+                targets.push(node.__threeObj)
+            }
+        })
+
+        this.clickIntersection = this.handleInteraction.getIntersection(evt.object3D, targets);//[evt.target]);
 
         if (!this.clickIntersection) {
             console.warn("click didn't hit anything; shouldn't happen");
@@ -517,16 +536,13 @@ let child = {
 
     // called to start the drag.  Will be called after clicked() if isDraggable is true
     dragStart: function (evt) {
-        // set up the drag state
-        if (!this.handleInteraction.startDrag(evt, this.clickNode.__threeObj, this.clickIntersection)) {
-            return;
-        }
-        // if (!this.handleInteraction.startRotateDrag(evt, this.clickNode._threeObj)) {
-        //     return;
-        // }
-
         // clicked on something that wasn't a node, like a link
         if (!this.clickIntersection) {
+            return;
+        }
+
+        // set up the drag state
+        if (!this.handleInteraction.startDrag(evt, this.clickNode.__threeObj, this.clickIntersection)) {
             return;
         }
 
@@ -554,13 +570,14 @@ let child = {
     },
 
     // called when the button is released to finish the drag
-    dragEnd: function (evt) {        
-        this.handleInteraction.endDrag(evt)
-
+    dragEnd: function (evt) {
         // clicked on something that wasn't a node, like a link
         if (!this.clickIntersection) {
             return
         }
+
+        this.handleInteraction.endDrag(evt)
+
         let node = this.clickNode;
 
         const initFixedPos = this.initialFixedPos;
@@ -862,14 +879,35 @@ let child = {
             //   node.htmlGenerator.tick(time);
            // }  
         }) 
+        if (!(this.isInteractive && this.isDraggable && this.handleInteraction.isDragging)  && this.initialRun) {
+            this.scaleToFit();
+        }
+
         this.forceGraph.traverseVisible(function (node) {
             node.matrixNeedsUpdate = true;
         })
+    },
+    // /**
+    //  * Export the cache data for this
+    //  */
+    // downloadCache: async function () {
 
-        if (this.initialRun) {
-            this.scaleToFit();
-        }
-    }
+    //     let graph = this.forceGraph.graphData();
+    //     const states = new Set()
+    //     for (let i = 0; i < graph.nodes.length; i++) {
+    //         let layer = graph.nodes[i].htmlGenerator.webLayer3D
+    //         layer.traverseLayersPreOrder((inner) => {
+    //             for (const hash of inner.allStateHashes) states.add(hash)
+    //         })
+    //     }
+
+    //     const blob = await htmlComponents["exportCache"](Array.from(states))
+    //     downloadBlob(blob, this.data.jsonUrl + '.cache')
+    // },
+
+    // loadCache: async function () {
+    //     await htmlComponents["loadCache"]("https://resources.realitymedia.digital/data/forcegraph/cache/" + this.data.jsonUrl + ".cache")
+    // }
 }
 
 // register the component with the AFrame scene
