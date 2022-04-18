@@ -341,8 +341,14 @@ AFRAME.registerSystem('portal', {
   },
 
   goToURL: async function (url) {
-      await this.fader.fadeOut();
-      window.location.href = url;
+    // first fade out
+    await this.fader.fadeOut();
+ 
+    // then hide completely
+    const canvas = document.querySelector(".a-canvas");
+    canvas.classList.add("a-hidden");
+
+    window.location.href = url;
   },
 
   teleportTo: async function (object) {
