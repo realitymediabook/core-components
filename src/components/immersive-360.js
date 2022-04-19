@@ -51,13 +51,22 @@ AFRAME.registerSystem('immersive-360', {
   tick: function () {
     // TODO: process the queue, popping everything off the queue when we are done
     if (this.updateThis) {
-      ///let cam = document.getElementById("viewing-camera").object3DMap.camera;
-      this.updateThis.el.sceneEl.camera.updateMatrices();
-      this.updateThis.el.sceneEl.camera.getWorldPosition(worldCamera)
-      this.updateThis.el.object3D.worldToLocal(worldCamera)
-      this.updateThis.mesh.position.copy(worldCamera)
+      if (window.APP.scene.is("vr-mode")) {
+        this.updateThis.mesh.position.set(0,0,0);
+        let radius = this.updateThis.data.radius;
+        this.updateThis.mesh.scale.set(10+radius,10+radius,10+radius);
+      } else {
+        ///let cam = document.getElementById("viewing-camera").object3DMap.camera;
+        this.updateThis.el.sceneEl.camera.updateMatrices();
+        this.updateThis.el.sceneEl.camera.getWorldPosition(worldCamera)
+        this.updateThis.el.object3D.worldToLocal(worldCamera)
+        this.updateThis.mesh.position.copy(worldCamera)
+        this.updateThis.mesh.scale.set(1,1,1);
+      }
       this.updateThis.mesh.matrixNeedsUpdate = true;
       this.updateThis.mesh.updateWorldMatrix(true, false)
+
+      this.updateThis = null;
     }
   },
 
@@ -128,7 +137,7 @@ AFRAME.registerComponent('immersive-360', {
       depthTest: false,
     })
     this.mesh.visible = false
-
+    
     this.near = this.data.radius - 0;
     this.far = this.data.radius + 0.05;
 
@@ -162,20 +171,20 @@ AFRAME.registerComponent('immersive-360', {
           this.mesh.material.opacity = 1
           this.ball.material.opacity = 1
         } else {
-            this.mesh.material.opacity = opacity > 1 ? 1 : opacity
-            this.mesh.visible = true
-            this.ball.material.opacity = this.mesh.material.opacity
-            
-            // position the mesh around user until they leave the ball
-            // this.el.object3D.worldToLocal(worldCamera)
-            // this.mesh.position.copy(worldCamera)
-            
-            // this.el.object3D.getWorldPosition(worldSelf)
-            // worldSelf.y += this.ball.userData.floatY;
+          this.mesh.material.opacity = opacity > 1 ? 1 : opacity
+          this.mesh.visible = true
+          this.ball.material.opacity = this.mesh.material.opacity
+          
+          // position the mesh around user until they leave the ball
+          // this.el.object3D.worldToLocal(worldCamera)
+          // this.mesh.position.copy(worldCamera)
+          
+          // this.el.object3D.getWorldPosition(worldSelf)
+          // worldSelf.y += this.ball.userData.floatY;
 
-            // worldSelf.sub(worldCamera)
-            // this.mesh.position.copy(worldSelf)
-            this.system.updatePosition(this);
+          // worldSelf.sub(worldCamera)
+          // this.mesh.position.copy(worldSelf)
+          this.system.updatePosition(this);
         }
     }
   },
