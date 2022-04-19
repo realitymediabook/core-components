@@ -241,7 +241,7 @@ AFRAME.registerSystem('portal', {
   },
 
   loadLayerCache: async function () {
-    let roomUri = await this.getRoomURI();
+    let roomUri = await this.getCacheURI();
     let url = "https://resources.realitymedia.digital/data/roomCache/" + roomUri;
     const loadCache = htmlComponents["loadCache"];
     // await loadCache(url);
@@ -287,7 +287,7 @@ AFRAME.registerSystem('portal', {
     })
   },
 
-  getRoomURI: async function() {
+  getCacheURI: async function() {
     await this.waitForRoomId()
     
     let roomId = this.roomData.roomId
@@ -309,10 +309,17 @@ AFRAME.registerSystem('portal', {
        }
   },
   getRoomHubId: async function (number) {
-    await this.waitForFetch()
+    // need both the login info which has the local room list
+    // and the room list fetched from the server
+    await this.waitForFetch();
+    await this.waitForRoomId();
 
     if (number >= 0 && window.SSO.userInfo.rooms.length > number) {
-        return window.SSO.userInfo.rooms[number]
+        if (this.roomData.roomId > 0 && this.roomData.localRooms.length > number) {
+            return this.roomData.localRooms[number];
+        } else {
+            return window.SSO.userInfo.rooms[number];
+        }
     } else {
         return ""
     }
@@ -370,7 +377,7 @@ AFRAME.registerSystem('portal', {
 
 window.APP.saveLayerCache = async function () {
     let system = window.APP.scene.systems.portal;
-    let roomUri = await system.getRoomURI();
+    let roomUri = await system.getCacheURI();
 
     const exportCache = htmlComponents["exportCache"];
     let blob = await exportCache();
