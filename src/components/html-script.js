@@ -561,6 +561,7 @@ AFRAME.registerComponent('html-script', {
             this.script.needsUpdate = true
             // this.script.webLayer3D.refresh(true)
             // this.script.webLayer3D.update(true)
+            this.script.webLayer3D.visible = false;
 
             this.script.waitForReady().then(() => {
                 const {width: wsize, height: hsize} = this.script.getSize()
@@ -571,9 +572,10 @@ AFRAME.registerComponent('html-script', {
 
                 // when a script finishes getting ready, tell the 
                 // portals to update themselves
-                this.el.sceneEl.emit('updatePortals'); 
+                this.script.webLayer3D.visible = true;
                 this.loading = false;
                 this.el.removeObject3D("spinner");
+                this.el.sceneEl.emit('updatePortals'); 
             })
 		} else {
             console.warn("'html-script' component failed to initialize script for " + this.componentName);
