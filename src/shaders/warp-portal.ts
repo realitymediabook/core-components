@@ -3,6 +3,8 @@
 import { ShaderExtension, ExtendedMaterial } from '../utils/MaterialModifier';
 import warpfx from '../assets/warpfx.png'
 import snoise from './snoise'
+import inverse4x4 from './inverse'
+
 const glsl = String.raw
 
 const uniforms = {
@@ -40,14 +42,15 @@ loader.load(warpfx, (warp) => {
 let WarpPortalShader: ShaderExtension = {
     uniforms: uniforms,
     vertexShader: {
+        functions: inverse4x4,
         uniforms: glsl`
         varying vec3 vRay;
         varying vec3 portalNormal;
         //varying vec3 cameraLocal;
         `,
         postTransform: glsl`
-        // vec3 cameraLocal = (inverse(modelMatrix) * vec4(cameraPosition, 1.0)).xyz;
-        vec3 cameraLocal = (inverse(modelViewMatrix) * vec4(0.0,0.0,0.0, 1.0)).xyz;
+        // vec3 cameraLocal = (inverseMat(modelMatrix) * vec4(cameraPosition, 1.0)).xyz;
+        vec3 cameraLocal = (inverseMat(modelViewMatrix) * vec4(0.0,0.0,0.0, 1.0)).xyz;
         vRay = position - cameraLocal;
         if (vRay.z < 0.0) {
             vRay.z = -vRay.z;

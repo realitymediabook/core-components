@@ -1,9 +1,6 @@
 const glsl = `
-varying vec2 vUv;
-varying vec3 vRay;
-varying vec3 vNormal;
 
-mat4 portalinverse(mat4 m) {
+mat4 inverseMat(mat4 m) {
   float
       a00 = m[0][0], a01 = m[0][1], a02 = m[0][2], a03 = m[0][3],
       a10 = m[1][0], a11 = m[1][1], a12 = m[1][2], a13 = m[1][3],
@@ -42,17 +39,6 @@ mat4 portalinverse(mat4 m) {
       a00 * b09 - a01 * b07 + a02 * b06,
       a31 * b01 - a30 * b03 - a32 * b00,
       a20 * b03 - a21 * b01 + a22 * b00) / det;
-}
-
-void main() {
-  vUv = uv;
-  // vNormal = normalMatrix * normal;
-  vec3 cameraLocal = (portalinverse(modelMatrix) * vec4(cameraPosition, 1.0)).xyz;
-  vRay = position - cameraLocal;
-  vNormal = normalize(-1. * vRay);
-  float dist = length(cameraLocal);
-  vRay.z *= 1.3 / (1. + pow(dist, 0.5)); // Change FOV by squashing local Z direction
-  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
 }
 `
 export default glsl
