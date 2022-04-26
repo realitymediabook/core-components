@@ -215,6 +215,7 @@ let child = {
         }
 
         this.forceGraph.matrixAutoUpdate = true;
+        this.useLevels = false;
 
         this.forceGraph
           .d3AlphaDecay(0.05)
@@ -256,58 +257,68 @@ let child = {
                     }
                 });
 
-                //this.forceGraph.d3Force('charge').strength(-200);
-                // while (initialRun) {
-                //     this.forceGraph.tickFrame();
-                // }
-
-                // want to use these forces
-                // this.forceGraph.d3Force('x', d3ForceX());
-                // if (this.data.xForce !== 0) {
-                //     this.forceGraph.d3Force('x').strength(this.data.xForce);
-                // }
-
-                let levels = [0, 0, 100, 200];
-                this.forceGraph.d3Force('y', d3ForceY()
-                    .y(node => {
-                        // // let dependedOn = this._nodeDependedOn(node);
-
-                        // // if (!dependedOn) {
-                        // console.log(node);
-                        // console.log(this._calcPath(node));
-                        let scale = node[this.data.nodeVal] ? node[this.data.nodeVal] : 1;
-                        let level = node.level ? levels[node.level] : 0;
-
-                        if (level == levels[1]) {
-                            level = level * 1 + Math.random() * 30;
-                        }
-                        return this.data.nodeRelSize * level * scale;
-                        // }
-
-                        // return node.dependsOn.length < 1 ? 100 : 0;
-                    })
-                    // .strength(node => {
-                    //     //let dependedOn = this._nodeDependedOn(node);
-
-                    //     // if (!dependedOn || node.dependsOn.length < 1) {
-                    //     return 1;
-                    //     // }
-
-                    //     // not a top or bottom
-                    //     // return 0;
-                    // })
-                );
-                // if (this.data.yForce !== 0) {
-                //     this.forceGraph.d3Force('y').strength(this.data.yForce);
-                // }
-
-                // this.forceGraph.d3Force('z', d3ForceZ());
-                // if (this.data.zForce !== 0) {
-                //     this.forceGraph.d3Force('z').strength(this.data.zForce);
-                // }
-
                 let graph = this.forceGraph.graphData();
-                this.forceGraph.d3Force("link", d3ForceLink(graph.links)
+                for (let i = 0; i < graph.nodes.length; i++) {
+                    if (graph.nodes[i].level) {
+                        this.useLevels = true;
+                        break;
+                    }
+                }
+                
+                if (this.useLevels) {
+                    for (let i = 0; i < graph.nodes.length; i++) {
+                        let levels = [0, 0, 100, 200];
+
+                        if (graph.nodes[i].level) {
+                            let node = graph.nodes[i];
+
+                            let scale = node[this.data.nodeVal] ? node[this.data.nodeVal] : 1;
+                            let level = node.level ? levels[node.level] : 0;
+    
+                            if (level == levels[1]) {
+                                level = level * 1 + Math.random() * 30;
+                            }
+                            node.yTarget =  this.data.nodeRelSize * level * scale;                        
+                        }
+                    }
+    
+                    //this.forceGraph.d3Force('charge').strength(-200);
+                    // while (initialRun) {
+                    //     this.forceGraph.tickFrame();
+                    // }
+
+                    // want to use these forces
+                    // this.forceGraph.d3Force('x', d3ForceX());
+                    // if (this.data.xForce !== 0) {
+                    //     this.forceGraph.d3Force('x').strength(this.data.xForce);
+                    // }
+
+                    this.forceGraph.d3Force('y', d3ForceY()
+                        .y(node => {
+                            return node.yTarget;
+                        })
+                        // .strength(1)
+
+                        //     //let dependedOn = this._nodeDependedOn(node);
+    
+                        //     // if (!dependedOn || node.dependsOn.length < 1) {
+                        //     return 1;
+                        //     // }
+    
+                        //     // not a top or bottom
+                        //     // return 0;
+                        // })
+                    );
+                        // if (this.data.yForce !== 0) {
+                    //     this.forceGraph.d3Force('y').strength(this.data.yForce);
+                    // }
+
+                    // this.forceGraph.d3Force('z', d3ForceZ());
+                    // if (this.data.zForce !== 0) {
+                    //     this.forceGraph.d3Force('z').strength(this.data.zForce);
+                    // }
+
+                    this.forceGraph.d3Force("link", d3ForceLink(graph.links)
                     .strength(link => {
                         let level = Math.max(link.source.level, link.target.level);
                         return 1/level;
@@ -319,8 +330,8 @@ let child = {
                     })
                     //.iterations(10)
                 )
-
-            })
+            }
+        })
 
 
         // override the defaults in the template
@@ -629,6 +640,7 @@ let child = {
         this.handleInteraction.endDrag(evt)
 
         let node = this.clickNode;
+        // node.yTarget = node.y;
 
         const initFixedPos = this.initialFixedPos;
         const initPos = this.initialPos;
@@ -636,7 +648,9 @@ let child = {
           ['x', 'y', 'z'].forEach(c => {
             const fc = `f${c}`;
             if (initFixedPos[fc] === undefined) {
-              delete(node[fc]);
+                delete(node[fc]);
+            // } else {
+            //     node[fc] = initFixedPos[fc];
             }
           });
           delete(this.initialFixedPos);
@@ -646,6 +660,7 @@ let child = {
         }
         this.sendSharedNode(this.clickNode);
 
+        // this.forceGraph.d3Force('y').initialize(this.forceGraph.graphData().nodes)
         this.forceGraph
           .d3AlphaTarget(0)   // release engine low intensity
           .resetCountdown();  // let the engine readjust after releasing fixed nodes
