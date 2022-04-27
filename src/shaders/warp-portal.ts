@@ -115,48 +115,41 @@ let WarpPortalShader: ShaderExtension = {
               col = vec4(col.b, col.g, col.r, col.a);
           }
 
-          /// portal shader effect
-          vec2 portal_coord = vUv * 2.0 - 1.0;
-          float portal_noise = snoise(vec3(portal_coord * 1., portalTime)) * 0.5 + 0.5;
-        
-          // Polar distance
-          float portal_dist = length(portal_coord);
-          portal_dist += portal_noise * 0.2;
-        
-          float maskOuter = 1.0 - smoothstep(portalRadius - RING_HARD_OUTER, portalRadius, portal_dist);
-          float maskInner = 1.0 - smoothstep(portalRadius - RING_WIDTH, portalRadius - RING_WIDTH + RING_HARD_INNER, portal_dist);
-          float portal_distortion = smoothstep(portalRadius - 0.2, portalRadius + 0.2, portal_dist);
+          if (portalRadius > 0.0) {
+            /// portal shader effect
+            vec2 portal_coord = vUv * 2.0 - 1.0;
+            float portal_noise = snoise(vec3(portal_coord * 1., portalTime)) * 0.5 + 0.5;
+            
+            // Polar distance
+            float portal_dist = length(portal_coord);
+            portal_dist += portal_noise * 0.2;
+            
+            float maskOuter = 1.0 - smoothstep(portalRadius - RING_HARD_OUTER, portalRadius, portal_dist);
+            float maskInner = 1.0 - smoothstep(portalRadius - RING_WIDTH, portalRadius - RING_WIDTH + RING_HARD_INNER, portal_dist);
+            float portal_distortion = smoothstep(portalRadius - 0.2, portalRadius + 0.2, portal_dist);
+            
+            vec3 portalnormal = normalize(portalNormal);
+            vec3 forwardPortal = vec3(0.0, 0.0, -1.0);
+
+            float portal_directView = smoothstep(0.0, 0.8, dot(portalnormal, forwardPortal));
+            vec3 portal_tangentOutward = normalize(vec3(portal_coord, 0.0));
+            vec3 portal_ray = mix(vRay, portal_tangentOutward, portal_distortion);
+
+            vec4 myCubeTexel = textureCube(portalCubeMap, portal_ray);
+
+            myCubeTexel = mapTexelToLinear( myCubeTexel );
+
+            vec3 centerLayer = myCubeTexel.rgb * maskInner;
+            vec3 ringLayer = portalRingColor * (1. - maskInner);
+            vec3 portal_composite = centerLayer + ringLayer;
+
+            vec4 portalCol = vec4(portal_composite, (maskOuter - maskInner) + maskInner * portal_directView);
           
-          vec3 portalnormal = normalize(portalNormal);
-          vec3 forwardPortal = vec3(0.0, 0.0, -1.0);
-
-          float portal_directView = smoothstep(0.0, 0.8, dot(portalnormal, forwardPortal));
-          vec3 portal_tangentOutward = normalize(vec3(portal_coord, 0.0));
-          vec3 portal_ray = mix(vRay, portal_tangentOutward, portal_distortion);
-
-          vec4 myCubeTexel = textureCube(portalCubeMap, portal_ray);
-
-        //   myCubeTexel += textureCube(portalCubeMap, normalize(vec3(portal_ray.x - texInvSize.s, portal_ray.yz))) / 8.0;        
-        //   myCubeTexel += textureCube(portalCubeMap, normalize(vec3(portal_ray.x - texInvSize.s, portal_ray.yz))) / 8.0;        
-        //   myCubeTexel += textureCube(portalCubeMap, normalize(vec3(portal_ray.x, portal_ray.y - texInvSize.t, portal_ray.z))) / 8.0;        
-        //   myCubeTexel += textureCube(portalCubeMap, normalize(vec3(portal_ray.x, portal_ray.y - texInvSize.t, portal_ray.z))) / 8.0;        
-
-          myCubeTexel = mapTexelToLinear( myCubeTexel );
-
-        //   vec4 posCol = vec4(smoothstep(-6.0, 6.0, cameraLocal), 1.0); //normalize((cameraLocal / 6.0));
-        //   myCubeTexel = posCol; // vec4(posCol.x, posCol.y, posCol.y, 1.0);
-          vec3 centerLayer = myCubeTexel.rgb * maskInner;
-          vec3 ringLayer = portalRingColor * (1. - maskInner);
-          vec3 portal_composite = centerLayer + ringLayer;
-        
-          //gl_FragColor 
-          vec4 portalCol = vec4(portal_composite, (maskOuter - maskInner) + maskInner * portal_directView);
-        
-          // blend the two
-          portalCol.rgb *= portalCol.a; //premultiply source 
-          col.rgb *= (1.0 - portalCol.a);
-          col.rgb += portalCol.rgb;
-
+            // blend the two
+            portalCol.rgb *= portalCol.a; //premultiply source 
+            col.rgb *= (1.0 - portalCol.a);
+            col.rgb += portalCol.rgb;
+          }
           diffuseColor *= col;
         `
     },
@@ -177,7 +170,7 @@ let WarpPortalShader: ShaderExtension = {
         material.uniforms.invertWarpColor = { value: mat.userData.invertWarpColor ? mat.userData.invertWarpColor : false}
         material.uniforms.portalRingColor = { value: mat.userData.ringColor ? mat.userData.ringColor : new THREE.Color("red") }
         material.uniforms.portalCubeMap = { value: mat.userData.cubeMap ? mat.userData.cubeMap : cubeMap }
-        material.uniforms.portalRadius =  {value: mat.userData.radius ? mat.userData.radius : 0.5}
+        material.uniforms.portalRadius =  {value: typeof(mat.userData.radius) === 'number' ? mat.userData.radius : 0.5}
     },
     updateUniforms: function(time: number, material: THREE.Material & ExtendedMaterial) {
         material.uniforms.warpTime.value = time * 0.001 + material.userData.timeOffset
@@ -185,7 +178,7 @@ let WarpPortalShader: ShaderExtension = {
 
         material.uniforms.warpTex.value = warpTex
         material.uniforms.portalCubeMap.value = material.userData.cubeMap ? material.userData.cubeMap : cubeMap 
-        material.uniforms.portalRadius.value = material.userData.radius ? material.userData.radius : 0.5
+        material.uniforms.portalRadius.value = typeof(material.userData.radius) === 'number' ? material.userData.radius : 0.5
 
         if (material.userData.cubeMap && Array.isArray(material.userData.cubeMap.images) && material.userData.cubeMap.images[0]) {
             let height = material.userData.cubeMap.images[0].height

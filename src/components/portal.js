@@ -452,7 +452,7 @@ AFRAME.registerComponent('portal', {
         //mesh.material = this.material
 
         this.materials = null
-        this.radius = 0.2
+        this.radius = 0
         this.cubeMap = new THREE.CubeTexture()
 
         // get the other before continuing
@@ -523,7 +523,7 @@ AFRAME.registerComponent('portal', {
         if (target && target.length == 0) {target=null}
     
         this.materials = updateWithShader(WarpPortalShader, this.el, target, {
-            radius: this.radius,
+            radius: 0,
             ringColor: this.color,
             cubeMap: this.cubeMap,
             invertWarpColor: this.portalType == 1 ? 1 : 0
@@ -995,10 +995,10 @@ AFRAME.registerComponent('portal', {
         this.setRadius(1)
     },
     close() {
-        this.setRadius(0.2)
+        this.setRadius(0)
     },
     isClosed() {
         // return this.material.uniforms.radius.value === 0
-        return this.radius === 0.2
+        return this.radius === 0
     },
 })
