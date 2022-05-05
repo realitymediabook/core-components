@@ -38,6 +38,25 @@
         }
     },
 
+    "mirror": {
+        "category": "AEL",
+        "nodes": ["Image"],
+        "properties": {
+            "name": { 
+                "type": "string",
+                "default": "" 
+            },
+            "width": { 
+                "type": "float",
+                "default": 1.0
+            },
+            "parameter1" : {
+                "type": "string",
+                "default": ""
+            }
+        }
+    },
+
     "html-script": {
         "category": "AEL",
         "nodes": ["Image"],

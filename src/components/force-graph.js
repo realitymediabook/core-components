@@ -593,6 +593,9 @@ let child = {
         if (!this.handleInteraction.isDragging) {
             // perhaps add a random force to the clicked node?
         }
+
+        window.APP.scene.systems["data-logging"].logForcegraph(this.el.object3D.name, this.clickNode.name);
+
     },
 
     // called to start the drag.  Will be called after clicked() if isDraggable is true

@@ -111,8 +111,12 @@ let WarpPortalShader: ShaderExtension = {
           col += vec4(0.2) * smoothstep(0.0, 2.0, glow * glow);
           col = mapTexelToLinear( col );
          
-          if (invertWarpColor > 0) {
-              col = vec4(col.b, col.g, col.r, col.a);
+          if (invertWarpColor == 1) {
+            col = vec4(col.b, col.g, col.r, col.a);   // red
+          } else if (invertWarpColor == 2) {
+            col = vec4(col.g, col.r, col.b, col.a);   // purple
+          } else if (invertWarpColor == 3) {
+            col = vec4(col.g, col.b, col.r, col.a);  // green
           }
 
           if (portalRadius > 0.0) {

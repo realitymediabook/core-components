@@ -405,7 +405,9 @@ AFRAME.registerComponent('html-script', {
 
     // handle "interact" events for clickable entities
     clicked: function(evt) {
-        console.log("clicked on html: ", evt)
+        //console.log("clicked on html: ", evt)
+        window.APP.scene.systems["data-logging"].logClick(this.el.object3D.name);
+
         this.script.clicked(evt) 
     },
   

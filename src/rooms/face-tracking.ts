@@ -11,6 +11,8 @@ import '../components/three-sample.js'
 import "../components/force-graph.js"
 import "../components/show-hide.js"
 
+import "https://www.aelatgt.org/avatar-webkit-hubs/room.js"
+
 AFRAME.GLTFModelPlus.registerComponent('immersive-360', 'immersive-360');
 AFRAME.GLTFModelPlus.registerComponent('portal', 'portal');
 AFRAME.GLTFModelPlus.registerComponent('shader', 'shader');

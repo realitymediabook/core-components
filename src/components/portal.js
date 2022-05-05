@@ -26,7 +26,7 @@ import { showRegionForObject, hiderRegionForObject } from './region-hider.js'
 import { findAncestorWithComponent } from '../utils/scene-graph'
 import { updateWithShader } from './shader'
 import { WarpPortalShader } from '../shaders/warp-portal.js'
-import { downloadBlob  } from "../utils/utils";
+import { downloadBlob, waitForDOMContentLoaded } from "../utils/utils";
 
 import goldcolor from '../assets/Metal_Gold_Foil_002_COLOR.jpg'
 import goldDisplacement from '../assets/Metal_Gold_Foil_002_DISP.jpg'
@@ -38,6 +38,9 @@ import CubeCameraWriter from "../utils/writeCubeMap.js";
 
 import { replaceMaterial as replaceWithShader} from './shader'
 import { Matrix4 } from "three";
+
+// from layer.js in hubs
+const CAMERA_LAYER_VIDEO_TEXTURE_TARGET = 6;
 
 const worldPos = new THREE.Vector3()
 const worldCameraPos = new THREE.Vector3()
@@ -156,20 +159,7 @@ loader.load(goldnorm, (norm) => {
 //     }
 // }
   
-const waitForEvent = function(eventName, eventObj) {
-    return new Promise(resolve => {
-      eventObj.addEventListener(eventName, resolve, { once: true });
-    });
-  };
-  
-const waitForDOMContentLoaded = function() {
-    if (document.readyState === "complete" || document.readyState === "loaded" || document.readyState === "interactive") {
-        return Promise.resolve(null);
-    } else {
-        return waitForEvent("DOMContentLoaded", window);
-    }
-};
-  
+ 
   
 
 //  scene.emit("hub_updated", { hub });
@@ -519,6 +509,15 @@ AFRAME.registerComponent('portal', {
         }
         this.el.removeAttribute("is-remote-hover-target")
         
+        // Make video-texture-target objects inivisible before rendering to the frame buffer
+        // Chromium checks for loops when drawing to a framebuffer so if we don't exclude the objects
+        // that are using that rendertarget's texture we get an error. Firefox does not check.
+        // https://chromium.googlesource.com/chromium/src/+/460cac969e2e9ac38a2611be1a32db0361d88bfb/gpu/command_buffer/service/gles2_cmd_decoder.cc#9516
+        this.el.object3D.traverse(o => {
+            o.layers.mask1 = o.layers.mask;
+            o.layers.set(CAMERA_LAYER_VIDEO_TEXTURE_TARGET);
+        });
+  
         let target = this.data.materialTarget
         if (target && target.length == 0) {target=null}
     
@@ -526,7 +525,7 @@ AFRAME.registerComponent('portal', {
             radius: 0,
             ringColor: this.color,
             cubeMap: this.cubeMap,
-            invertWarpColor: this.portalType == 1 ? 1 : 0
+            invertWarpColor: this.portalColor[this.portalType]
         })
 
         if (this.portalType == 1 && this.portalTarget != null) {
@@ -543,6 +542,19 @@ AFRAME.registerComponent('portal', {
             })
         } else if (this.portalType == 4) {
             this.system.getCubeMapByName(this.portalTarget, this.data.secondaryTarget).then( urls => {
+                //const urls = [cubeMapPosX, cubeMapNegX, cubeMapPosY, cubeMapNegY, cubeMapPosZ, cubeMapNegZ];
+                const texture = new Promise((resolve, reject) =>
+                    new THREE.CubeTextureLoader().load(urls, resolve, undefined, reject)
+                ).then(texture => {
+                    texture.format = THREE.RGBFormat;
+                    //this.material.uniforms.cubeMap.value = texture;
+                    //this.materials.map((mat) => {mat.userData.cubeMap = texture;})
+                    this.cubeMap = texture
+                }).catch(e => console.error(e))    
+            })
+        } else if (this.portalType == 5) {
+            // secondary target is the identifying name
+            this.system.getCubeMapByName(this.el.object3D.name).then( urls => {
                 //const urls = [cubeMapPosX, cubeMapNegX, cubeMapPosY, cubeMapNegY, cubeMapPosZ, cubeMapNegZ];
                 const texture = new Promise((resolve, reject) =>
                     new THREE.CubeTextureLoader().load(urls, resolve, undefined, reject)
@@ -798,6 +810,14 @@ AFRAME.registerComponent('portal', {
         // }
     },
 
+
+    logAndFollow: async function(param, postLog) {
+        //@ts-ignore
+        await window.APP.scene.systems["data-logging"].logPortal(this.el.object3D.name, param);
+
+        postLog && await postLog()
+    },
+
     // hideRoom: function() {
     //     const canvas = document.querySelector(".a-canvas");
     //     canvas.classList.add("a-hidden");
@@ -833,21 +853,25 @@ AFRAME.registerComponent('portal', {
 
           // window.APP.utils.changeToHub
           if ((this.portalType == 1 || this.portalType == 4) && dist < 0.25) {
-              if (!this.locationhref) {
+            if (!this.locationhref) {
                 this.locationhref = this.other;
                 if (!APP.store.state.preferences.fastRoomSwitching) {
-                    console.log("set window.location.href to " + this.other);
-                    //this.hideRoom();
-                    //window.location.href = this.other;
-                    this.system.goToURL(this.other);
+                    this.logAndFollow(this.portalTypes[this.portalType], async () => {
+                        console.log("set window.location.href to " + this.other);
+                        //this.hideRoom();
+                        //window.location.href = this.other;
+                        this.system.goToURL(this.other);
+                    });
                 } else {
                     let wayPoint = this.data.secondaryTarget
                     const environmentScene = document.querySelector("#environment-scene");
-                    let goToWayPoint = function() {
-                        if (wayPoint && wayPoint.length > 0) {
-                            console.log("FAST ROOM SWITCH INCLUDES waypoint: setting hash to " + wayPoint)
-                            window.location.hash = wayPoint
-                        }
+                    let goToWayPoint = () => {
+                        this.logAndFollow(this.portalTypes[this.portalType], async  () => {
+                            if (wayPoint && wayPoint.length > 0) {
+                                console.log("FAST ROOM SWITCH INCLUDES waypoint: setting hash to " + wayPoint)
+                                window.location.hash = wayPoint
+                            }
+                        });
                     }
                     console.log("FAST ROOM SWITCH. going to " + this.hub_id)
                     if (this.hubId === APP.hub.hub_id) {
@@ -864,13 +888,17 @@ AFRAME.registerComponent('portal', {
                 }
             }
           } else if (this.portalType == 2 && dist < 0.25) {
-            this.system.teleportTo(this.other.object3D);
+            this.logAndFollow(this.portalTypes[this.portalType], async () => {
+                this.system.teleportTo(this.other.object3D);
+            });
           } else if (this.portalType == 3) {
               if (dist < 0.25) {
                 if (!this.locationhref) {
-                  console.log("set window.location.hash to " + this.other)
-                  this.locationhref = this.other;
-                  window.location.hash = this.other;
+                    this.logAndFollow(this.portalTypes[this.portalType], async () => {
+                        console.log("set window.location.hash to " + this.other)
+                        this.locationhref = this.other;
+                        window.location.hash = this.other;
+                    });
                 }
               } else {
                   // if we set locationhref, we teleported.  when it
@@ -878,9 +906,21 @@ AFRAME.registerComponent('portal', {
                   // we will clear the flag
                   this.locationhref = null
               }
-          }
+            } else if (this.portalType == 5 && dist < 0.25) {
+                if (!this.locationhref) {
+                    this.locationhref = this.other;
+                    this.logAndFollow(this.other, async () => {
+                        console.log("going to webpage with URL " + this.other);
+                        //this.hideRoom();
+                        window.open(this.other, "_blank");                    
+                        await this.system.teleportTo(window.APP.scene.systems["data-logging"].getNearestWaypoint().object3D);
+                        this.locationhref = null;
+                    });
+                }
+            }
+    
         }
-      },
+    },
 
     getOther: function () {
         return new Promise((resolve) => {
@@ -935,6 +975,8 @@ AFRAME.registerComponent('portal', {
                 } else {
                     resolve(url) 
                 }
+            } else if (this.portalType == 5) {
+                resolve(this.portalTarget)
             }
         })
     },
@@ -960,6 +1002,8 @@ AFRAME.registerComponent('portal', {
         this.setPortalInfo(params[1], params[2], params[3])
     },
 
+    portalTypes: ["", "room", "portal", "waypoint", "roomName", "webpage"],
+    portalColor: [0, 1, 0, 0, 1, 3],
     setPortalInfo: function(portalType, portalTarget, color) {
         if (portalType === "room") {
             this.portalType = 1;
@@ -976,6 +1020,9 @@ AFRAME.registerComponent('portal', {
             this.portalTarget = portalTarget
         } else if (portalType === "roomName") {
             this.portalType = 4;
+            this.portalTarget = portalTarget
+        } else if (portalType === "webpage") {
+            this.portalType = 5;
             this.portalTarget = portalTarget
         } else {    
             this.portalType = 0;
