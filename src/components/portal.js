@@ -554,7 +554,7 @@ AFRAME.registerComponent('portal', {
             })
         } else if (this.portalType == 5) {
             // secondary target is the identifying name
-            this.system.getCubeMapByName(this.el.object3D.name).then( urls => {
+            this.system.getCubeMapByName(this.el.object3D.name, this.data.secondaryTarget).then( urls => {
                 //const urls = [cubeMapPosX, cubeMapNegX, cubeMapPosY, cubeMapNegY, cubeMapPosZ, cubeMapNegZ];
                 const texture = new Promise((resolve, reject) =>
                     new THREE.CubeTextureLoader().load(urls, resolve, undefined, reject)
@@ -810,10 +810,10 @@ AFRAME.registerComponent('portal', {
         // }
     },
 
-
-    logAndFollow: async function(param, postLog) {
+    logAndFollow: async function(param, postLog, id) {
+        let logId = this.el.object3D.name + (id && id.length ? "-" + id : "");
         //@ts-ignore
-        await window.APP.scene.systems["data-logging"].logPortal(this.el.object3D.name, param);
+        await window.APP.scene.systems["data-logging"].logPortal(logId, param);
 
         postLog && await postLog()
     },
@@ -915,7 +915,7 @@ AFRAME.registerComponent('portal', {
                         window.open(this.other, "_blank");                    
                         await this.system.teleportTo(window.APP.scene.systems["data-logging"].getNearestWaypoint().object3D);
                         this.locationhref = null;
-                    });
+                    }, this.data.secondaryTarget);
                 }
             }
     

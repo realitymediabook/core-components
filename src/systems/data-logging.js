@@ -53,7 +53,7 @@ AFRAME.registerSystem('data-logging', {
     },
     
     logOpen: async function (url, target, windowFeatures) {
-        await this.logLink(target, url);
+        await this.logOpen(target, url);
         oldWindowOpen(url,target,windowFeatures);
     },
 
@@ -127,6 +127,9 @@ AFRAME.registerSystem('data-logging', {
     },
     logLink: async function (param1, param2) {
         await this.logEvent("link-clicked", param1, param2);
+    },
+    logOpen: async function (param1, param2) {
+        await this.logEvent("link-open", param1, param2);
     },
     logForcegraph: async function (param1, param2) {
         await this.logEvent("forcegraph-clicked", param1, param2);
