@@ -29,6 +29,8 @@ let DIST_THRESHOLD = 0.5;
 let worldCam = new THREE.Vector3()
 let worldWaypoint = new THREE.Vector3()
 
+let oldWindowOpen = window.open;
+
 AFRAME.registerSystem('data-logging', {
     init: function () {
         this.id = -1;
@@ -36,6 +38,10 @@ AFRAME.registerSystem('data-logging', {
         this.waypoint = -1;
         this.waypointName = "";
         this.waypointDistance = Number.MAX_SAFE_INTEGER;
+
+        // log window.open events
+        this.logOpen = this.logOpen.bind(this)
+        window.open = this.logOpen;
 
         waitForDOMContentLoaded().then(() => {
             setTimeout(() => {
@@ -46,6 +52,11 @@ AFRAME.registerSystem('data-logging', {
         });
     },
     
+    logOpen: async function (url, target, windowFeatures) {
+        await this.logLink(target, url);
+        oldWindowOpen(url,target,windowFeatures);
+    },
+
     finishInit: async function () {
         this.portal = this.el.systems['portal'];
         this.waypoints = this.el.systems["hubs-systems"].waypointSystem;

@@ -295,7 +295,9 @@ let child = {
 
                     this.forceGraph.d3Force('y', d3ForceY()
                         .y(node => {
-                            return node.yTarget;
+                            return node.yTarget ? node.yTarget : 1000
+                        }).strength(node => {
+                            return node.yTarget ? 0.1 : 0;
                         })
                         // .strength(1)
 
@@ -318,20 +320,31 @@ let child = {
                     //     this.forceGraph.d3Force('z').strength(this.data.zForce);
                     // }
 
-                    this.forceGraph.d3Force("link", d3ForceLink(graph.links)
-                    .strength(link => {
-                        let level = Math.max(link.source.level, link.target.level);
-                        return 1/level;
-                    })
-                    .distance(link => {
-                        let level = Math.max(link.source.level, link.target.level);
-
-                        return 40 * level;
-                    })
-                    //.iterations(10)
-                )
-            }
-        })
+                    // this.forceGraph.d3Force("link", d3ForceLink(graph.links)
+                    //     .strength(link => {
+                    //         if (link.source.level || link.target.level) {
+                    //             let level = Math.max(link.source.level, link.target.level);
+                    //             level = link.source.level ? level : link.target.level;
+                    //             level = link.target.level ? level : link.source.level; 
+                    //             return 1/level;
+                    //         } else {
+                    //             return 0.1;
+                    //         }
+                    //     })
+                    //     .distance(link => {
+                    //         if (link.source.level || link.target.level) {
+                    //             let level = Math.max(link.source.level, link.target.level);
+                    //             level = link.source.level ? level : link.target.level;
+                    //             level = link.target.level ? level : link.source.level; 
+                    //             return 30 * level;
+                    //         } else {
+                    //             return 30;
+                    //         }
+                    //     })
+                    //     //.iterations(10)
+                    // )
+                 }
+            })
 
 
         // override the defaults in the template
@@ -517,7 +530,9 @@ let child = {
         this.forceGraph.nodeThreeObject(this.makeHTMLText);
 
         if (this.data.chargeForce != 0) {
-            this.forceGraph.d3Force('charge', d3ForceManyBody());//.strength(-0.01*this.data.chargeForce));
+            this.forceGraph.d3Force('charge').strength(this.data.chargeForce);
+
+            // this.forceGraph.d3Force('charge', d3ForceManyBody());//.strength(-0.01*this.data.chargeForce));
         }
     },
 
