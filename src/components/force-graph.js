@@ -297,7 +297,7 @@ let child = {
                         .y(node => {
                             return node.yTarget ? node.yTarget : 1000
                         }).strength(node => {
-                            return node.yTarget ? 0.1 : 0;
+                            return node.yTarget ? (this.data.yForce? this.data.yForce : 0.1) : 0;
                         })
                         // .strength(1)
 
