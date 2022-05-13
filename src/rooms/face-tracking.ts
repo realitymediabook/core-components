@@ -10,6 +10,7 @@ import '../components/video-control-pad'
 import '../components/three-sample.js'
 import "../components/force-graph.js"
 import "../components/show-hide.js"
+import "../components/mirror.js"
 
 import "https://www.aelatgt.org/avatar-webkit-hubs/room.js"
 

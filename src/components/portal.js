@@ -234,7 +234,7 @@ AFRAME.registerSystem('portal', {
     let roomUri = await this.getCacheURI();
     let url = "https://resources.realitymedia.digital/data/roomCache/" + roomUri;
     const loadCache = htmlComponents["loadCache"];
-    // await loadCache(url);
+    await loadCache(url);
     this.cacheLoaded = true
   },
 
@@ -286,7 +286,7 @@ AFRAME.registerSystem('portal', {
     if (roomId < 0) {
         room = window.APP.hubChannel.hubId;
     }
-    return room + '.cache';
+    return room;// + '.cache';
   },
 
   getRoomURL: async function (number) {
@@ -851,12 +851,15 @@ AFRAME.registerComponent('portal', {
           }
           const dist = Math.abs(worldCameraPos.z);
 
+          const exitImmersive = async () => await window.APP.utils.handleExitTo2DInterstitial(false, () => {}, true);
+
           // window.APP.utils.changeToHub
           if ((this.portalType == 1 || this.portalType == 4) && dist < 0.25) {
             if (!this.locationhref) {
                 this.locationhref = this.other;
                 if (!APP.store.state.preferences.fastRoomSwitching) {
                     this.logAndFollow(this.portalTypes[this.portalType], async () => {
+                        await exitImmersive();
                         console.log("set window.location.href to " + this.other);
                         //this.hideRoom();
                         //window.location.href = this.other;
@@ -888,15 +891,19 @@ AFRAME.registerComponent('portal', {
                 }
             }
           } else if (this.portalType == 2 && dist < 0.25) {
-            this.logAndFollow(this.portalTypes[this.portalType], async () => {
-                this.system.teleportTo(this.other.object3D);
-            });
+              if (!this.locationhref) {
+                this.locationhref = this.other;
+                this.logAndFollow(this.portalTypes[this.portalType], async () => {
+                    this.system.teleportTo(this.other.object3D);
+                    this.locationhref = null;
+                });
+            }
           } else if (this.portalType == 3) {
               if (dist < 0.25) {
                 if (!this.locationhref) {
+                    this.locationhref = this.other;
                     this.logAndFollow(this.portalTypes[this.portalType], async () => {
                         console.log("set window.location.hash to " + this.other)
-                        this.locationhref = this.other;
                         window.location.hash = this.other;
                     });
                 }
@@ -912,6 +919,7 @@ AFRAME.registerComponent('portal', {
                     this.logAndFollow(this.other, async () => {
                         console.log("going to webpage with URL " + this.other);
                         //this.hideRoom();
+                        await exitImmersive();
                         window.open(this.other, "_blank");                    
                         await this.system.teleportTo(window.APP.scene.systems["data-logging"].getNearestWaypoint().object3D);
                         this.locationhref = null;

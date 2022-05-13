@@ -40,8 +40,8 @@ AFRAME.registerSystem('data-logging', {
         this.waypointDistance = Number.MAX_SAFE_INTEGER;
 
         // log window.open events
-        this.logOpen = this.logOpen.bind(this)
-        window.open = this.logOpen;
+        this.logOpenAndOpen = this.logOpenAndOpen.bind(this)
+        window.open = this.logOpenAndOpen;
 
         waitForDOMContentLoaded().then(() => {
             setTimeout(() => {
@@ -52,7 +52,7 @@ AFRAME.registerSystem('data-logging', {
         });
     },
     
-    logOpen: async function (url, target, windowFeatures) {
+    logOpenAndOpen: async function (url, target, windowFeatures) {
         await this.logOpen(target, url);
         oldWindowOpen(url,target,windowFeatures);
     },
@@ -92,25 +92,30 @@ AFRAME.registerSystem('data-logging', {
     //  param2 (optional)
 
     logEvent: async function (eventName, param1, param2) {
+        if (this.id <= 0) {
+            console.log("can't log event '" + eventName + "', user ID unknown.")
+            return;
+        }
         const options = {};
         options.headers = new Headers();
         options.headers.set("Content-Type", "application/json");
         options.credentials = "include"; // use cookie
-        var url = "https://realitymedia.digital/logging/log/?token=" + 
-            encodeURIComponent(window.APP.store.state.credentials.token)
-            url += "&id=" + encodeURIComponent(this.id);
+        var url = "https://realitymedia.digital/logging/log/?";
+            url += "id=" + encodeURIComponent(this.id);
+            url += "&room=" + encodeURIComponent(this.room);
             url += "&event=" + encodeURIComponent(eventName); 
             url += "&timestamp=" + encodeURIComponent(Date.now()); 
             url += "&location=" + encodeURIComponent(this.waypointName); 
             url += "&param1=" + (param1 ? encodeURIComponent(param1) : "");
             url += "&param2=" + (param2 ? encodeURIComponent(param2) : ""); 
-            url += "&room=" + encodeURIComponent(this.room);
         console.log("Logging: " + url);
-        // await fetch(url, options)
-        //     .then(response => response.json())
-        //     .then(data => {
-        //         console.log('Log reply:', data.message);
-        // })
+        url += "&token=" + 
+            encodeURIComponent(window.APP.store.state.credentials.token);
+        await fetch(url, options)
+            .then(response => response.json())
+            .then(data => {
+                console.log('Log reply:', data.message);
+        })
     },
 
     logClick: async function (param1, param2) {
