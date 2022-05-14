@@ -30,8 +30,8 @@ let cubeMap = new THREE.CubeTexture()
 const loader = new THREE.TextureLoader()
 var warpTex: THREE.Texture
 loader.load(warpfx, (warp) => {
-    warp.minFilter = THREE.NearestMipmapNearestFilter;
-    warp.magFilter = THREE.NearestMipmapNearestFilter;
+    warp.minFilter = THREE.LinearMipMapLinearFilter;
+    warp.magFilter = THREE.LinearFilter;
     warp.wrapS = THREE.RepeatWrapping;
     warp.wrapT = THREE.RepeatWrapping;
     warpTex = warp
