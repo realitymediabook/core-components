@@ -994,8 +994,7 @@ let child = {
     //         })
     //     }
 
-    //     const blob = await htmlComponents["exportCache"](Array.from(states))
-    //     downloadBlob(blob, this.data.jsonUrl + '.cache')
+    //     await htmlComponents["exportCache"](this.data.jsonUrl, Array.from(states))
     // },
 
     // loadCache: async function () {
