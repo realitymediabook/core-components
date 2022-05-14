@@ -367,7 +367,7 @@ AFRAME.registerSystem('portal', {
 
 window.APP.saveLayerCache = async function () {
     let system = window.APP.scene.systems.portal;
-    let roomUri = await system.getCacheURI();
+    let roomUri = await system.getCacheURI() + ".cache";
 
     const exportCache = htmlComponents["exportCache"];
     let blob = await exportCache();
