@@ -553,7 +553,7 @@ AFRAME.registerComponent('portal', {
             })
         } else if (this.portalType == 5) {
             // secondary target is the identifying name
-            this.system.getCubeMapByName(this.el.object3D.name, this.data.secondaryTarget).then( urls => {
+            this.system.getCubeMapByName(this.data.secondaryTarget, this.el.object3D.name).then( urls => {
                 //const urls = [cubeMapPosX, cubeMapNegX, cubeMapPosY, cubeMapNegY, cubeMapPosZ, cubeMapNegZ];
                 const texture = new Promise((resolve, reject) =>
                     new THREE.CubeTextureLoader().load(urls, resolve, undefined, reject)

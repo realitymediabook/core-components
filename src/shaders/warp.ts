@@ -10,6 +10,7 @@ const uniforms = {
     warpTex: {value: null},
     texRepeat: { value: new THREE.Vector2(1,1) },
     texOffset: { value: new THREE.Vector2(0,0) },
+    invertWarpColor: { value: 0 },
     texFlipY: { value: 0 }
 } 
 
@@ -38,6 +39,9 @@ let WarpShader: ShaderExtension = {
         uniform vec2 texRepeat;
         uniform vec2 texOffset;
         uniform int texFlipY; 
+
+        uniform int invertWarpColor;
+
                 `,
         replaceMap: glsl`
           float t = warpTime;
@@ -60,6 +64,15 @@ let WarpShader: ShaderExtension = {
           col += vec4(0.2) * smoothstep(0.0, 2.0, glow * glow);
           
           col = mapTexelToLinear( col );
+
+          if (invertWarpColor == 1) {
+            col = vec4(col.b, col.g, col.r, col.a);   // red
+          } else if (invertWarpColor == 2) {
+            col = vec4(col.g, col.r, col.b, col.a);   // purple
+          } else if (invertWarpColor == 3) {
+            col = vec4(col.g, col.b, col.r, col.a);  // green
+          }
+
           diffuseColor *= col;
         `
     },
@@ -71,6 +84,8 @@ let WarpShader: ShaderExtension = {
         // we seem to want to flip the flipY
         material.uniforms.texFlipY = { value: mat.map.flipY ? 0 : 1 }
         material.userData.timeOffset = (Math.random()+0.5) * 10
+
+        material.uniforms.invertWarpColor = { value: mat.userData.invertWarpColor ? mat.userData.invertWarpColor : false}
 
         material.uniforms.warpTex.value = warpTex
         // we seem to want to flip the flipY
