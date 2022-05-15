@@ -26,7 +26,7 @@ window.APP.writeWayPointTextures = function(names) {
                         cubecam = new CubeCameraWriter(0.1, 1000, SIZE)
                     } else {
                         const cubeRenderTarget = new THREE.WebGLCubeRenderTarget( SIZE, { encoding: THREE.sRGBEncoding, generateMipmaps: true } )
-                        cubecam = new CubeCameraWriter(1, 100000, cubeRenderTarget)
+                        cubecam = new CubeCameraWriter(0.1, 10000, cubeRenderTarget)
                     }
         
                     cubecam.position.y = 1.6

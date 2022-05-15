@@ -442,7 +442,7 @@ AFRAME.registerComponent('portal', {
 
         this.materials = null
         this.radius = 0
-        this.cubeMap = new THREE.CubeTexture()
+        this.emptyCubeMap = this.cubeMap = new THREE.CubeTexture()
 
         // get the other before continuing
         this.other = await this.getOther()
@@ -493,9 +493,18 @@ AFRAME.registerComponent('portal', {
         if (this.portalType == 2 || this.portalType == 3) { 
             //this.el.sceneEl.addEventListener('model-loaded', () => {
                 showRegionForObject(this.el)
+
+                this.materials.map((mat) => {
+                    mat.uniforms.portalCubeMap.value = this.emptyCubeMap
+                })
+        
                 this.cubeCamera.update(this.el.sceneEl.renderer, this.el.sceneEl.object3D)
                 // this.cubeCamera.renderTarget.texture.generateMipmaps = true
                 // this.cubeCamera.renderTarget.texture.needsUpdate = true
+                this.materials.map((mat) => {
+                    mat.uniforms.portalCubeMap.value = this.cubeMap
+                })
+
                 hiderRegionForObject(this.el)
             //}, once)
         }
@@ -512,10 +521,10 @@ AFRAME.registerComponent('portal', {
         // Chromium checks for loops when drawing to a framebuffer so if we don't exclude the objects
         // that are using that rendertarget's texture we get an error. Firefox does not check.
         // https://chromium.googlesource.com/chromium/src/+/460cac969e2e9ac38a2611be1a32db0361d88bfb/gpu/command_buffer/service/gles2_cmd_decoder.cc#9516
-        this.el.object3D.traverse(o => {
-            o.layers.mask1 = o.layers.mask;
-            o.layers.set(CAMERA_LAYER_VIDEO_TEXTURE_TARGET);
-        });
+        // this.el.object3D.traverse(o => {
+        //     o.layers.mask1 = o.layers.mask;
+        //     o.layers.set(CAMERA_LAYER_VIDEO_TEXTURE_TARGET);
+        // });
   
         let target = this.data.materialTarget
         if (target && target.length == 0) {target=null}
