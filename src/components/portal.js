@@ -928,8 +928,9 @@ AFRAME.registerComponent('portal', {
                         console.log("going to webpage with URL " + this.other);
                         //this.hideRoom();
                         await exitImmersive();
-                        window.open(this.other, "_blank");                    
-                        await this.system.teleportTo(window.APP.scene.systems["data-logging"].getNearestWaypoint().object3D);
+                        //window.open(this.other, "_blank");           
+                        this.system.goToURL(this.other);
+                        // await this.system.teleportTo(window.APP.scene.systems["data-logging"].getNearestWaypoint().object3D);
                         this.locationhref = null;
                     }, this.data.secondaryTarget);
                 }

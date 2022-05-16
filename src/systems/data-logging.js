@@ -52,9 +52,9 @@ AFRAME.registerSystem('data-logging', {
         });
     },
     
-    logOpenAndOpen: async function (url, target, windowFeatures) {
-        await this.logOpen(target, url);
-        oldWindowOpen(url,target,windowFeatures);
+    logOpenAndOpen: function (url, target, ...args) {
+        this.logOpen(target, url);
+        oldWindowOpen(url,target,...args);
     },
 
     finishInit: async function () {
