@@ -175,17 +175,17 @@ AFRAME.registerComponent('immersive-360', {
             this.maxopacity = 0;
           }
           this.mesh.visible = false
-          this.mesh.material.opacity = 1
-          this.ball.material.opacity = 1
+          this.mesh.material.opacity = 0
+          this.ball.material.opacity = 0.5;
         } else {
           this.mesh.material.opacity = opacity > 1 ? 1 : opacity
           this.mesh.visible = true
           if (this.maxopacity < 1 && this.mesh.material.opacity == 1) {
             window.APP.scene.systems["data-logging"].logPanoballEntered(this.el.object3D.name);
           }
-          this.ball.material.opacity = this.mesh.material.opacity
+          this.ball.material.opacity = 1 - this.mesh.material.opacity
 
-          this.maxopacity = Math.max(this.maxopacity, this.ball.material.opacity);
+          this.maxopacity = Math.max(this.maxopacity, this.mesh.material.opacity);
           // position the mesh around user until they leave the ball
           // this.el.object3D.worldToLocal(worldCamera)
           // this.mesh.position.copy(worldCamera)
