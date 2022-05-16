@@ -80,6 +80,9 @@ AFRAME.registerComponent('html-script', {
             parameter4: this.data.parameter4
         }
 
+        this.justClicked = false;
+        this.wasClicked = false;
+
         this.loading = true;
         this.spinnerPlane = new THREE.Mesh( spinnerGeometry, spinnerMaterial );
         this.spinnerPlane.matrixAutoUpdate = true
@@ -406,9 +409,13 @@ AFRAME.registerComponent('html-script', {
     // handle "interact" events for clickable entities
     clicked: function(evt) {
         //console.log("clicked on html: ", evt)
-        window.APP.scene.systems["data-logging"].logClick(this.el.object3D.name);
+        this.justClicked = true;
 
-        this.script.clicked(evt) 
+        if (!this.wasClicked) {
+            // if a VR controller button is pressed and held, just "click" on the first one
+            window.APP.scene.systems["data-logging"].logClick(this.el.object3D.name);
+            this.script.clicked(evt)
+        } 
     },
   
     // methods that will be passed to the html object so they can update networked data
@@ -445,6 +452,17 @@ AFRAME.registerComponent('html-script', {
             this.spinnerPlane.rotation.z += 0.03
         } else {
             if (this.script.isInteractive) {
+                if (this.justClicked) {
+                    if (!this.wasClicked) {
+                        console.log("CLICKED!!")
+                    } else {
+                        console.log("....button still held, pretend it's clicked again...")
+                    }
+                    this.wasClicked = this.justClicked;
+                    this.justClicked = false;
+                } else {
+                    this.wasClicked = false;
+                }
                 // more or less copied from "hoverable-visuals.js" in hubs
                 const toggling = this.el.sceneEl.systems["hubs-systems"].cursorTogglingSystem;
                 var passthruInteractor = []
