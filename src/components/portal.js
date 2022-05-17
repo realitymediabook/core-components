@@ -494,15 +494,25 @@ AFRAME.registerComponent('portal', {
             //this.el.sceneEl.addEventListener('model-loaded', () => {
                 showRegionForObject(this.el)
 
-                this.materials.map((mat) => {
-                    mat.uniforms.portalCubeMap.value = this.emptyCubeMap
+                const portals = Array.from(document.querySelectorAll(`[portal]`));
+                portals.map((el) => {
+                    let p = el.components.portal
+                    if (p.materials && p.portalType == 2) { // "portal" type
+                        p.materials.map((mat) => {
+                            mat.uniforms.portalCubeMap.value = p.emptyCubeMap
+                        })
+                    }
                 })
-        
                 this.cubeCamera.update(this.el.sceneEl.renderer, this.el.sceneEl.object3D)
                 // this.cubeCamera.renderTarget.texture.generateMipmaps = true
                 // this.cubeCamera.renderTarget.texture.needsUpdate = true
-                this.materials.map((mat) => {
-                    mat.uniforms.portalCubeMap.value = this.cubeMap
+                portals.map((el) => {
+                    let p = el.components.portal
+                    if (p.materials && p.portalType == 2) { // "portal" type
+                        p.materials.map((mat) => {
+                            mat.uniforms.portalCubeMap.value = p.cubeMap
+                        })
+                    }
                 })
 
                 hiderRegionForObject(this.el)
