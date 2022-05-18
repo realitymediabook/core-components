@@ -76,7 +76,7 @@ AFRAME.registerSystem('data-logging', {
         if (this.waypoints.ready) {
             let {nearest, nearestDist} = this.updateNearestWaypoint();
             this.waypoint = nearest;
-            this.waypointName = nearest >= 0 ? this.waypoints.waypoints[nearest].name : "";
+            this.waypointName = nearest >= 0 ? this.waypoints.ready[nearest].name : "";
             this.waypointDistance = nearestDist;
         }
         this.logEvent("room-entered");

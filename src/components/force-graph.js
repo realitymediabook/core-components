@@ -939,46 +939,53 @@ let child = {
         }
 
         // Run force-graph ticker
-        this.forceGraph.tickFrame();
+        //const isD3Sim = this.forceGraph.forceEngine !== 'ngraph';
+        let foo = this.forceGraph.__kapsuleInstance.forceEngine()
 
-        let ns = this.forceGraph.graphData();
-        
-        // need to force this or we'll get the one from last frame
-        // which will cause the graph to swim when the head moves
-        this.el.sceneEl.camera.updateMatrices();
-        this.el.sceneEl.camera.getWorldQuaternion(this.cameraQuaternion);
+        if (foo == "d3") {
+            this.forceGraph.tickFrame();
+            let ns = this.forceGraph.graphData();
+            
+            // need to force this or we'll get the one from last frame
+            // which will cause the graph to swim when the head moves
+            this.el.sceneEl.camera.updateMatrices();
+            this.el.sceneEl.camera.getWorldQuaternion(this.cameraQuaternion);
 
-        // this.el.sceneEl.camera.getWorldPosition(this.eye);
-        // this.forceGraph.getWorldPosition(this.center);
-        // this.mat.lookAt(this.eye, this.center, this.up);
-        // this.cameraQuaternion.setFromRotationMatrix(this.mat);
+            // this.el.sceneEl.camera.getWorldPosition(this.eye);
+            // this.forceGraph.getWorldPosition(this.center);
+            // this.mat.lookAt(this.eye, this.center, this.up);
+            // this.cameraQuaternion.setFromRotationMatrix(this.mat);
 
-        this.forceGraph.getWorldQuaternion(this.nodeQuaternion).invert().multiply(this.cameraQuaternion);
+            this.forceGraph.getWorldQuaternion(this.nodeQuaternion).invert().multiply(this.cameraQuaternion);
 
-        ns.nodes.forEach((node) => {
-            // might not be created yet
-            node.__threeObj && node.__threeObj.quaternion.copy( this.nodeQuaternion );
+            ns.nodes.forEach((node) => {
+                // might not be created yet
+                node.__threeObj && node.__threeObj.quaternion.copy( this.nodeQuaternion );
 
-            if (node._box) {
-                node._box.rotation.z += 0.03;
-                //node._box.matrixNeedsUpdate = true;
+                if (node._box) {
+                    node._box.rotation.z += 0.03;
+                    //node._box.matrixNeedsUpdate = true;
+                }
+
+                node.htmlGenerator && node.htmlGenerator.tick(time)
+
+                // if node.__threeObj isn't created, or it is and box hasn't yet been removed,
+                // we will tick
+            // if ((node._box || !node.__threeObj) && node.htmlGenerator) {
+                //   node.htmlGenerator.tick(time);
+            // }  
+            }) 
+            if (!(this.isInteractive && this.isDraggable && this.handleInteraction.isDragging)  && this.initialRun) {
+                this.scaleToFit();
             }
 
-            node.htmlGenerator && node.htmlGenerator.tick(time)
-
-            // if node.__threeObj isn't created, or it is and box hasn't yet been removed,
-            // we will tick
-           // if ((node._box || !node.__threeObj) && node.htmlGenerator) {
-            //   node.htmlGenerator.tick(time);
-           // }  
-        }) 
-        if (!(this.isInteractive && this.isDraggable && this.handleInteraction.isDragging)  && this.initialRun) {
-            this.scaleToFit();
+            this.forceGraph.traverseVisible(function (node) {
+                node.matrixNeedsUpdate = true;
+            })
+        } else {
+            console.warn("forcegraph is " + foo)
         }
 
-        this.forceGraph.traverseVisible(function (node) {
-            node.matrixNeedsUpdate = true;
-        })
     },
     // /**
     //  * Export the cache data for this
