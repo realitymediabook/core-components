@@ -689,6 +689,16 @@ AFRAME.registerComponent('portal', {
         // })
     },
 
+    getCacheSet: function () {
+        const states = new Set();
+        if (this.portalTitle) {
+            this.portalTitle.webLayer3D.rootLayer.traverseLayersPreOrder((inner) => {
+                for (const hash of inner.allStateHashes) states.add(hash);
+            })
+        }
+        return states;
+    },
+
     remove: function () {
         this.el.sceneEl.removeEventListener('updatePortals', this.updatePortal)
         this.el.sceneEl.removeEventListener('model-loaded', this.updatePortal)

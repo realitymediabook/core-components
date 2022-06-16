@@ -987,22 +987,20 @@ let child = {
         }
 
     },
-    // /**
-    //  * Export the cache data for this
-    //  */
-    // downloadCache: async function () {
 
-    //     let graph = this.forceGraph.graphData();
-    //     const states = new Set()
-    //     for (let i = 0; i < graph.nodes.length; i++) {
-    //         let layer = graph.nodes[i].htmlGenerator.webLayer3D
-    //         layer.traverseLayersPreOrder((inner) => {
-    //             for (const hash of inner.allStateHashes) states.add(hash)
-    //         })
-    //     }
-
-    //     await htmlComponents["exportCache"](this.data.jsonUrl, Array.from(states))
-    // },
+    // get the list of state hashes for all nodes
+    getCacheSet: function () {
+        let graph = this.forceGraph.graphData();
+        const states = new Set()
+        for (let i = 0; i < graph.nodes.length; i++) {
+            let layer = graph.nodes[i].htmlGenerator.webLayer3D
+            layer.traverseLayersPreOrder((inner) => {
+                for (const hash of inner.allStateHashes) states.add(hash)
+            })
+        }
+        return states
+        //await htmlComponents["exportCache"](this.data.jsonUrl, Array.from(states))
+    },
 
     // loadCache: async function () {
     //     await htmlComponents["loadCache"]("https://resources.realitymedia.digital/data/forcegraph/cache/" + this.data.jsonUrl + ".cache")

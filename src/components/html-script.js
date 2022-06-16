@@ -608,20 +608,28 @@ AFRAME.registerComponent('html-script', {
 
     destroyScript: function () {
         if (this.script.isInteractive) {
-            this.simpleContainer.object3D.removeEventListener('interact', this.clicked)
+            this.simpleContainer.object3D.removeEventListener('interact', this.clicked);
         }
 
-        window.APP.scene.removeEventListener('didConnectToNetworkedScene', this.setupNetworked)
+        window.APP.scene.removeEventListener('didConnectToNetworkedScene', this.setupNetworked);
 
-        this.el.removeChild(this.simpleContainer)
-        this.simpleContainer.removeObject3D("weblayer3d")
-        this.simpleContainer = null
+        this.el.removeChild(this.simpleContainer);
+        this.simpleContainer.removeObject3D("weblayer3d");
+        this.simpleContainer = null;
 
         if (this.script.isNetworked && this.netEntity.parentNode) {
-            this.netEntity.parentNode.removeChild(this.netEntity)
+            this.netEntity.parentNode.removeChild(this.netEntity);
         }
-        this.script.destroy()
-        this.script = null
+        this.script.destroy();
+        this.script = null;
+    },
+
+    getCacheSet: function () {
+        const states = new Set();
+        this.script.webLayer3D.rootLayer.traverseLayersPreOrder((inner) => {
+            for (const hash of inner.allStateHashes) states.add(hash);
+        })
+        return states;
     }
 })
 
