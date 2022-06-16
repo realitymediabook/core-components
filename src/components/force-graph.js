@@ -663,18 +663,28 @@ let child = {
         const initFixedPos = this.initialFixedPos;
         const initPos = this.initialPos;
         if (initFixedPos) {
-          ['x', 'y', 'z'].forEach(c => {
-            const fc = `f${c}`;
-            if (initFixedPos[fc] === undefined) {
-                delete(node[fc]);
-            // } else {
-            //     node[fc] = initFixedPos[fc];
+            let finalPos = new THREE.Vector3(node.x, node.y, node.z).applyMatrix4(node.__threeObj.parent.matrixWorld);
+            this.initialPos.applyMatrix4(node.__threeObj.parent.matrixWorld);
+            let dist = finalPos.distanceTo(this.initialPos);
+
+            if (dist < 0.05) {
+                ['x', 'y', 'z'].forEach(c => {
+                    const fc = `f${c}`;
+                    delete(node[fc]);
+                });
             }
-          });
-          delete(this.initialFixedPos);
-          delete(this.initialPos);
-          delete[this.clickNodeSpaceOffset];
-          delete[this.clickNodeSpace];
+            // ['x', 'y', 'z'].forEach(c => {
+            //     const fc = `f${c}`;
+            //     if (initFixedPos[fc] === undefined) {
+            //         delete(node[fc]);
+            //     // } else {
+            //     //     node[fc] = initFixedPos[fc];
+            //     }
+            // });
+            delete(this.initialFixedPos);
+            delete(this.initialPos);
+            delete[this.clickNodeSpaceOffset];
+            delete[this.clickNodeSpace];
         }
         this.sendSharedNode(this.clickNode);
 
@@ -798,14 +808,19 @@ let child = {
 
     updateCount: 0,
 
+    hasFixed: function(node) {
+        return node["fx"] != undefined // || node["fy"] || node["fz"]
+    },
+
     // if the object is networked, this.stateSync will exist and should be called
-    setSharedData: function (node) {
+    setSharedData: function () {
         let sharedDataToSend = {nodes: []};
         if (this.stateSync) {
             //console.log("setSharedData: ", this.updateCount++);
             for (let i = 0; i< this.sharedData.nodes.length; i++) {
-                if (this.sharedData.updates[i]) {
+                if (this.sharedData.updates[i]){ // || this.hasFixed(this.sharedData.nodes[i])) {
                     sharedDataToSend.nodes[i] = this.sharedData.nodes[i];
+                    // this.sharedData.updates[i] = true;
                 } else {
                     sharedDataToSend.nodes[i] = {}
                 }
@@ -925,15 +940,15 @@ let child = {
                 this.decayCount--;
                 if (this.decayCount == 0) {
                     this.forceGraph.d3AlphaTarget(0);
-                    let graph = this.forceGraph.graphData();
-                    for (let i = 0; i< graph.nodes.length; i++) {
-                        if (!this.handleInteraction.isDragging || this.clickNode !== graph.nodes[i]) {
-                            ['x', 'y', 'z'].forEach(c => {
-                                const fc = `f${c}`;
-                                delete(graph.nodes[i][fc]);
-                            });
-                        }
-                    }
+                    // let graph = this.forceGraph.graphData();
+                    // for (let i = 0; i< graph.nodes.length; i++) {
+                    //     if (!this.handleInteraction.isDragging || this.clickNode !== graph.nodes[i]) {
+                    //         ['x', 'y', 'z'].forEach(c => {
+                    //             const fc = `f${c}`;
+                    //             delete(graph.nodes[i][fc]);
+                    //         });
+                    //     }
+                    // }
                 }
             }
         }
