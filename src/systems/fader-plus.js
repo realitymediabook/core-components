@@ -3,6 +3,8 @@
  * to include adjustable duration and converted from component to system
  */
 
+import {waitForDOMContentLoaded } from "../utils/utils";
+
 AFRAME.registerSystem('fader-plus', {
   schema: {
     direction: { type: 'string', default: 'none' }, // "in", "out", or "none"
@@ -25,7 +27,9 @@ AFRAME.registerSystem('fader-plus', {
     mesh.scale.z = 0.15
     mesh.matrixNeedsUpdate = true
     mesh.renderOrder = 1 // render after other transparent stuff
-    this.el.camera.add(mesh)
+    waitForDOMContentLoaded().then(() => {
+       this.el.camera.add(mesh)
+    })
     this.mesh = mesh
   },
 
