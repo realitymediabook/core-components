@@ -13,7 +13,8 @@ interface AObject3D extends THREE.Object3D {
 
 AFRAME.registerComponent('video-control-pad', {
     mediaVideo: {} as Component,
-    
+    counter: 0,
+
     schema: {
         target: { type: 'string', default: "" },  // if nothing passed, just create some noise
         radius: { type: 'number', default: 1 }
@@ -73,14 +74,27 @@ AFRAME.registerComponent('video-control-pad', {
         this.el.addEventListener('proximityleave', () => this.leaveRegion())
     },
 
+    tick: function (time, timeDelta) {
+        if (this.counter) {
+            this.counter -= timeDelta;
+            if (this.counter < 0 ) {
+                this.counter = 0;
+                //@ts-ignore
+                this.mediaVideo.togglePlaying();
+            }
+        }
+    },
+
     enterRegion: function () {
         if (this.mediaVideo.data.videoPaused) {
+            this.counter = 1000;
             //@ts-ignore
-            this.mediaVideo.togglePlaying()
+            // this.mediaVideo.togglePlaying()
         }
     },
 
     leaveRegion: function () {
+        this.counter = 0;
         if (!this.mediaVideo.data.videoPaused) {
             //@ts-ignore
             this.mediaVideo.togglePlaying()
